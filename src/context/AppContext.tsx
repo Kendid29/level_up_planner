@@ -1,4 +1,4 @@
-// Level Up Planner — Global Reactive Application Context
+// Level Up Planner: Global Reactive Application Context
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Profile,
