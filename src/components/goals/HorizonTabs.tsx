@@ -1,4 +1,4 @@
-// Level Up Planner — Horizon Segmented Control
+// Level Up Planner: Horizon Segmented Control
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { GoalHorizon } from '../../types/models';

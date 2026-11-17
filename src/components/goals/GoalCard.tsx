@@ -1,4 +1,4 @@
-// Level Up Planner — Goal Card Component
+// Level Up Planner: Goal Card Component
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { GoalWithProgress } from '../../types/models';

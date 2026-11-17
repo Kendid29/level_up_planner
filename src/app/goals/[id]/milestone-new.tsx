@@ -1,4 +1,4 @@
-// Level Up Planner — Add Milestone Screen
+// Level Up Planner: Add Milestone Screen
 import React, { useState } from 'react';
 import {
   View,

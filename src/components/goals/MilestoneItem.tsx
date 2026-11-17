@@ -1,4 +1,4 @@
-// Level Up Planner — Milestone Item Component
+// Level Up Planner: Milestone Item Component
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Trash2 } from 'lucide-react-native';

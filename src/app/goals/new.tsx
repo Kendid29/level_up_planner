@@ -1,4 +1,4 @@
-// Level Up Planner — Add Goal Screen
+// Level Up Planner: Add Goal Screen
 import React, { useState } from 'react';
 import {
   View,

@@ -1,4 +1,4 @@
-// Level Up Planner — Goals Screen
+// Level Up Planner: Goals Screen
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
