@@ -1,4 +1,4 @@
-// Level Up Planner — Home Dashboard Screen
+// Level Up Planner: Home Dashboard Screen
 import React, { useEffect } from 'react';
 import {
   View,

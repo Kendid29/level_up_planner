@@ -1,4 +1,4 @@
-// Level Up Planner — Profile & Settings Screen
+// Level Up Planner: Profile & Settings Screen
 import React, { useState } from 'react';
 import {
   View,

@@ -1,4 +1,4 @@
-// Level Up Planner — Tabs Layout
+// Level Up Planner: Tabs Layout
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Home, Target, CheckSquare, Repeat, BookOpen } from 'lucide-react-native';

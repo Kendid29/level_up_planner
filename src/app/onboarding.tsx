@@ -1,4 +1,4 @@
-// Level Up Planner — Welcome & Onboarding Screen
+// Level Up Planner: Welcome & Onboarding Screen
 import React, { useState } from 'react';
 import {
   View,

@@ -1,4 +1,4 @@
-// Level Up Planner — Root Layout
+// Level Up Planner: Root Layout
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
