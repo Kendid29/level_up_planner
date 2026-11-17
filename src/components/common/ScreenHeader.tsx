@@ -1,4 +1,4 @@
-// Level Up Planner — Screen Header Component
+// Level Up Planner: Screen Header Component
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';

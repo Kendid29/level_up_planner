@@ -1,4 +1,4 @@
-// Level Up Planner — Design Tokens
+// Level Up Planner: Design Tokens
 // Defined strictly in accordance with DESIGN.md and Anti-Slop principles
 
 export const colors = {

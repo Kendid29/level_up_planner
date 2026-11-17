@@ -1,4 +1,4 @@
-// Level Up Planner — Reusable Accessible Checkbox Component
+// Level Up Planner: Reusable Accessible Checkbox Component
 import React from 'react';
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';

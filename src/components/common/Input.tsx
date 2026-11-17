@@ -1,4 +1,4 @@
-// Level Up Planner — Reusable Form Input Component
+// Level Up Planner: Reusable Form Input Component
 import React, { useState } from 'react';
 import {
   View,

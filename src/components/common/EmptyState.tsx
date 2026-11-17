@@ -1,4 +1,4 @@
-// Level Up Planner — Reusable Empty State Component
+// Level Up Planner: Reusable Empty State Component
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '../../theme/tokens';

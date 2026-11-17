@@ -1,4 +1,4 @@
-// Level Up Planner — Reusable Card Component
+// Level Up Planner: Reusable Card Component
 import React from 'react';
 import { Pressable, View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { colors, radius, spacing } from '../../theme/tokens';

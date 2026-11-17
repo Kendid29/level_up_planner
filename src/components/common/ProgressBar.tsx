@@ -1,4 +1,4 @@
-// Level Up Planner — Reusable Progress Bar Component
+// Level Up Planner: Reusable Progress Bar Component
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, radius, spacing, typography } from '../../theme/tokens';

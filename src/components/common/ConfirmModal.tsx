@@ -1,4 +1,4 @@
-// Level Up Planner — Accessible Confirmation Dialog Modal
+// Level Up Planner: Accessible Confirmation Dialog Modal
 import React from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { colors, radius, spacing, typography } from '../../theme/tokens';

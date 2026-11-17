@@ -1,4 +1,4 @@
-// Level Up Planner — Reusable Button Component
+// Level Up Planner: Reusable Button Component
 import React from 'react';
 import {
   Pressable,

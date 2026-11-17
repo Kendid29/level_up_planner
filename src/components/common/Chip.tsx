@@ -1,4 +1,4 @@
-// Level Up Planner — Reusable Chip / Badge Component
+// Level Up Planner: Reusable Chip / Badge Component
 import React from 'react';
 import { Pressable, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
