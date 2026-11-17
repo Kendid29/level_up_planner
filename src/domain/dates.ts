@@ -1,4 +1,4 @@
-// Level Up Planner — Date Handling Utilities
+// Level Up Planner: Date Handling Utilities
 // Uses local device date to prevent UTC offset shifting bugs
 
 export function formatLocalDate(date: Date = new Date()): string {

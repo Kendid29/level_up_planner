@@ -1,4 +1,4 @@
-// Level Up Planner — Core Business Logic & Calculations
+// Level Up Planner: Core Business Logic & Calculations
 // Follows PRD.md Sections 7.3 - 7.7 and anti-slop guidelines
 
 import { Goal, Milestone, Task, Habit, HabitLog, TaskFilter, GoalWithProgress, HabitWithWeeklyProgress } from '../types/models';
