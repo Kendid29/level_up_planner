@@ -1,4 +1,4 @@
-// Level Up Planner — SQLite Database Schema & Migrations
+// Level Up Planner: SQLite Database Schema & Migrations
 // Based on PRD.md Section 10
 
 export const CREATE_TABLES_SQL = `

@@ -1,4 +1,4 @@
-// Level Up Planner — Goal Repository
+// Level Up Planner: Goal Repository
 import { getDatabase } from '../database/db';
 import { Goal, GoalHorizon, GoalStatus, PriorityLevel } from '../types/models';
 

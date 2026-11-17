@@ -1,4 +1,4 @@
-// Level Up Planner — Milestone Repository
+// Level Up Planner: Milestone Repository
 import { getDatabase } from '../database/db';
 import { Milestone } from '../types/models';
 

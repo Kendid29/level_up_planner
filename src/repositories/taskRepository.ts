@@ -1,4 +1,4 @@
-// Level Up Planner — Task Repository
+// Level Up Planner: Task Repository
 import { getDatabase } from '../database/db';
 import { Task, TaskStatus } from '../types/models';
 

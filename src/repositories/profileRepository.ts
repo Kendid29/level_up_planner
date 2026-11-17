@@ -1,4 +1,4 @@
-// Level Up Planner — Profile & Settings Repository
+// Level Up Planner: Profile & Settings Repository
 import { getDatabase } from '../database/db';
 import { Profile } from '../types/models';
 import { DEFAULT_USER_ID, CREATE_TABLES_SQL } from '../database/schema';

@@ -1,4 +1,4 @@
-// Level Up Planner — Note Repository
+// Level Up Planner: Note Repository
 import { getDatabase } from '../database/db';
 import { Note } from '../types/models';
 

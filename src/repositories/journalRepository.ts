@@ -1,4 +1,4 @@
-// Level Up Planner — Journal Repository
+// Level Up Planner: Journal Repository
 import { getDatabase } from '../database/db';
 import { JournalEntry } from '../types/models';
 

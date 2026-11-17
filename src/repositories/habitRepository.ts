@@ -1,4 +1,4 @@
-// Level Up Planner — Habit Repository
+// Level Up Planner: Habit Repository
 import { getDatabase } from '../database/db';
 import { Habit, HabitLog } from '../types/models';
 

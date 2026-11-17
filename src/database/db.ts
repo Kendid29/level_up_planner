@@ -1,4 +1,4 @@
-// Level Up Planner — SQLite Database Management
+// Level Up Planner: SQLite Database Management
 import * as SQLite from 'expo-sqlite';
 import { CREATE_TABLES_SQL, DEFAULT_USER_ID } from './schema';
 import { formatLocalDate } from '../domain/dates';

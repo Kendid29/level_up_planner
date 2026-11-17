@@ -1,4 +1,4 @@
-// Level Up Planner — Data Models & Types
+// Level Up Planner: Data Models & Types
 // Based on PRD.md Section 10
 
 export type GoalHorizon = 'short' | 'mid' | 'long';
