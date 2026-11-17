@@ -1,4 +1,4 @@
-// Level Up Planner — Note Card Component
+// Level Up Planner: Note Card Component
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Note } from '../../types/models';

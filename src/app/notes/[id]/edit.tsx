@@ -1,4 +1,4 @@
-// Level Up Planner — Edit Note Screen
+// Level Up Planner: Edit Note Screen
 import React, { useState } from 'react';
 import {
   View,

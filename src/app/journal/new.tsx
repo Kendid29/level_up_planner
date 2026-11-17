@@ -1,4 +1,4 @@
-// Level Up Planner — New Journal Entry Screen
+// Level Up Planner: New Journal Entry Screen
 import React, { useState } from 'react';
 import {
   View,

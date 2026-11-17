@@ -1,4 +1,4 @@
-// Level Up Planner — Notes & Journal Screen
+// Level Up Planner: Notes & Journal Screen
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';

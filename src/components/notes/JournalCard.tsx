@@ -1,4 +1,4 @@
-// Level Up Planner — Journal Card Component
+// Level Up Planner: Journal Card Component
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { JournalEntry } from '../../types/models';

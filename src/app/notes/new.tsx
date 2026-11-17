@@ -1,4 +1,4 @@
-// Level Up Planner — Add Note Screen
+// Level Up Planner: Add Note Screen
 import React, { useState } from 'react';
 import {
   View,
