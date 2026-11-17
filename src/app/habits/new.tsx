@@ -1,4 +1,4 @@
-// Level Up Planner — Add Habit Screen
+// Level Up Planner: Add Habit Screen
 import React, { useState } from 'react';
 import {
   View,

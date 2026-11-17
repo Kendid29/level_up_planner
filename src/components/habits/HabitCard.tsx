@@ -1,4 +1,4 @@
-// Level Up Planner — Habit Card Component
+// Level Up Planner: Habit Card Component
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Check, Archive } from 'lucide-react-native';

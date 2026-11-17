@@ -1,4 +1,4 @@
-// Level Up Planner — Habits Screen
+// Level Up Planner: Habits Screen
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
