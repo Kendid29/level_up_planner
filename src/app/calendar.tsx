@@ -1,4 +1,4 @@
-// Level Up Planner — Calendar Screen
+// Level Up Planner: Calendar Screen
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
