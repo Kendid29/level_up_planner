@@ -1,4 +1,4 @@
-// Level Up Planner — Task Filter Tabs
+// Level Up Planner: Task Filter Tabs
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { TaskFilter } from '../../types/models';

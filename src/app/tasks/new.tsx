@@ -1,4 +1,4 @@
-// Level Up Planner — Add Task Screen
+// Level Up Planner: Add Task Screen
 import React, { useState } from 'react';
 import {
   View,

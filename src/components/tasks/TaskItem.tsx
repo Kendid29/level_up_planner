@@ -1,4 +1,4 @@
-// Level Up Planner — Task Item Component
+// Level Up Planner: Task Item Component
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Target, Trash2 } from 'lucide-react-native';
