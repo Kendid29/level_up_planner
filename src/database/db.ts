@@ -18,6 +18,23 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
 export async function initDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
   await db.execAsync(CREATE_TABLES_SQL);
 
+  // Safe migrations for Phase 1 columns if existing tables existed
+  const alterColumns = [
+    'ALTER TABLE tasks ADD COLUMN due_time TEXT;',
+    'ALTER TABLE tasks ADD COLUMN reminder_at TEXT;',
+    'ALTER TABLE tasks ADD COLUMN notification_id TEXT;',
+    'ALTER TABLE habits ADD COLUMN reminder_time TEXT;',
+    'ALTER TABLE habits ADD COLUMN reminder_notification_ids TEXT;',
+  ];
+
+  for (const sql of alterColumns) {
+    try {
+      await db.execAsync(sql);
+    } catch {
+      // Column already exists or table freshly created
+    }
+  }
+
   // Ensure default profile exists
   const existingProfile = await db.getFirstAsync<{ id: string }>(
     'SELECT id FROM profiles WHERE id = ?',
@@ -34,6 +51,37 @@ export async function initDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
 
     // Seed starter content to provide a helpful first experience without being overwhelming
     await seedStarterData(db);
+  }
+
+  // Ensure default reminder preferences exist
+  await seedDefaultReminders(db);
+}
+
+async function seedDefaultReminders(db: SQLite.SQLiteDatabase): Promise<void> {
+  const now = new Date().toISOString();
+  
+  const dailyPref = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM reminder_preferences WHERE user_id = ? AND reminder_type = ?',
+    [DEFAULT_USER_ID, 'daily_planning']
+  );
+  if (!dailyPref) {
+    await db.runAsync(
+      `INSERT INTO reminder_preferences (id, user_id, reminder_type, enabled, scheduled_time, scheduled_day, notification_id, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ['pref_daily_plan', DEFAULT_USER_ID, 'daily_planning', 1, '08:00', 0, null, now]
+    );
+  }
+
+  const weeklyPref = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM reminder_preferences WHERE user_id = ? AND reminder_type = ?',
+    [DEFAULT_USER_ID, 'weekly_review']
+  );
+  if (!weeklyPref) {
+    await db.runAsync(
+      `INSERT INTO reminder_preferences (id, user_id, reminder_type, enabled, scheduled_time, scheduled_day, notification_id, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ['pref_weekly_rev', DEFAULT_USER_ID, 'weekly_review', 1, '18:00', 0, null, now] // 0 = Sunday
+    );
   }
 }
 

@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   title TEXT NOT NULL,
   description TEXT,
   due_at TEXT,
+  due_time TEXT,
+  reminder_at TEXT,
+  notification_id TEXT,
   priority TEXT NOT NULL DEFAULT 'medium',
   status TEXT NOT NULL DEFAULT 'todo',
   category TEXT NOT NULL,
@@ -65,6 +68,8 @@ CREATE TABLE IF NOT EXISTS habits (
   active_days TEXT NOT NULL DEFAULT '[0,1,2,3,4,5,6]',
   start_date TEXT NOT NULL,
   archived_at TEXT,
+  reminder_time TEXT,
+  reminder_notification_ids TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -96,6 +101,47 @@ CREATE TABLE IF NOT EXISTS journal_entries (
   entry_date TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS weekly_reviews (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  week_start_date TEXT NOT NULL,
+  week_end_date TEXT NOT NULL,
+  period_key TEXT NOT NULL UNIQUE,
+  total_tasks INTEGER NOT NULL DEFAULT 0,
+  completed_tasks INTEGER NOT NULL DEFAULT 0,
+  completion_percentage REAL NOT NULL DEFAULT 0,
+  active_goals_count INTEGER NOT NULL DEFAULT 0,
+  completed_milestones_count INTEGER NOT NULL DEFAULT 0,
+  habit_completion_rate REAL NOT NULL DEFAULT 0,
+  reflection_went_well TEXT,
+  reflection_challenges TEXT,
+  reflection_learnings TEXT,
+  reflection_improvements TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS weekly_priorities (
+  id TEXT PRIMARY KEY,
+  weekly_review_id TEXT NOT NULL REFERENCES weekly_reviews(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  related_goal_id TEXT REFERENCES goals(id) ON DELETE SET NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reminder_preferences (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  reminder_type TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  scheduled_time TEXT NOT NULL,
+  scheduled_day INTEGER NOT NULL DEFAULT 0,
+  notification_id TEXT,
+  updated_at TEXT NOT NULL,
+  UNIQUE(user_id, reminder_type)
 );
 `;
 
