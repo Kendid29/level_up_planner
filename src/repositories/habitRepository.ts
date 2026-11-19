@@ -25,12 +25,13 @@ export async function createHabit(
   const now = new Date().toISOString();
 
   await db.runAsync(
-    `INSERT INTO habits (id, user_id, title, frequency, active_days, start_date, archived_at, reminder_time, reminder_notification_ids, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO habits (id, user_id, title, category, frequency, active_days, start_date, archived_at, reminder_time, reminder_notification_ids, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       habit.user_id,
       habit.title.trim(),
+      habit.category || null,
       habit.frequency,
       habit.active_days,
       habit.start_date,
@@ -62,6 +63,7 @@ export async function updateHabit(id: string, updates: Partial<Habit>): Promise<
   await db.runAsync(
     `UPDATE habits SET
        title = ?,
+       category = ?,
        frequency = ?,
        active_days = ?,
        start_date = ?,
@@ -72,6 +74,7 @@ export async function updateHabit(id: string, updates: Partial<Habit>): Promise<
      WHERE id = ?`,
     [
       updated.title.trim(),
+      updated.category || null,
       updated.frequency,
       updated.active_days,
       updated.start_date,

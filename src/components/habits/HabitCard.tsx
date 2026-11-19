@@ -1,7 +1,7 @@
 // Level Up Planner: Habit Card Component
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Check, Archive } from 'lucide-react-native';
+import { Check, Archive, BarChart2 } from 'lucide-react-native';
 import { HabitWithWeeklyProgress } from '../../types/models';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 import { Card } from '../common/Card';
@@ -13,6 +13,7 @@ interface HabitCardProps {
   onToggleDay: (dateStr: string) => void;
   onEdit?: () => void;
   onArchive?: () => void;
+  onViewStats?: () => void;
 }
 
 export function HabitCard({
@@ -20,6 +21,7 @@ export function HabitCard({
   onToggleDay,
   onEdit,
   onArchive,
+  onViewStats,
 }: HabitCardProps) {
   const todayStr = formatLocalDate(new Date());
   const progressPercent = Math.min(
@@ -36,20 +38,35 @@ export function HabitCard({
           </Text>
           <Text style={styles.targetText}>
             Target: {habit.frequency} days a week ({habit.completedThisWeek}/{habit.frequency} this week)
+            {habit.category ? ` • ${habit.category}` : ''}
           </Text>
         </View>
 
-        {onArchive ? (
-          <Pressable
-            onPress={onArchive}
-            style={({ pressed }) => [styles.archiveBtn, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Archive habit ${habit.title}`}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Archive size={16} color={colors.muted} />
-          </Pressable>
-        ) : null}
+        <View style={styles.headerActions}>
+          {onViewStats ? (
+            <Pressable
+              onPress={onViewStats}
+              style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`View statistics for ${habit.title}`}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <BarChart2 size={16} color={colors.forest} />
+            </Pressable>
+          ) : null}
+
+          {onArchive ? (
+            <Pressable
+              onPress={onArchive}
+              style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Archive habit ${habit.title}`}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Archive size={16} color={colors.muted} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <ProgressBar progressPercent={progressPercent} showPercentText={false} />
@@ -143,6 +160,14 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.muted,
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  actionBtn: {
+    padding: spacing.xs,
   },
   archiveBtn: {
     padding: spacing.xs,
