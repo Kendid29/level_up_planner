@@ -23,6 +23,7 @@ import {
   Sparkles,
   ChevronRight,
   AlertCircle,
+  TrendingUp,
 } from 'lucide-react-native';
 import { useApp } from '../../context/AppContext';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
@@ -75,13 +76,23 @@ export default function HomeScreen() {
 
         <View style={styles.topActions}>
           <Pressable
+            onPress={() => router.push('/insights/monthly' as any)}
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel="View Monthly Progress Summary"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <TrendingUp size={20} color={colors.charcoal} strokeWidth={2} />
+          </Pressable>
+
+          <Pressable
             onPress={() => router.push('/calendar')}
             style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
             accessibilityRole="button"
             accessibilityLabel="Open Calendar"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Calendar size={22} color={colors.charcoal} strokeWidth={2} />
+            <Calendar size={20} color={colors.charcoal} strokeWidth={2} />
           </Pressable>
 
           <Pressable
@@ -91,7 +102,7 @@ export default function HomeScreen() {
             accessibilityLabel="Open Profile & Settings"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <User size={22} color={colors.charcoal} strokeWidth={2} />
+            <User size={20} color={colors.charcoal} strokeWidth={2} />
           </Pressable>
         </View>
       </View>

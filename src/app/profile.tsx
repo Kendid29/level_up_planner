@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { User, Bell, Shield, Info, Trash2, ChevronRight } from 'lucide-react-native';
+import { User, Bell, Shield, Info, Trash2, ChevronRight, TrendingUp, Tag } from 'lucide-react-native';
 import { useApp } from '@/context/AppContext';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
@@ -115,6 +115,48 @@ export default function ProfileScreen() {
             <Chip label="Warm Cream (Default)" selected={true} />
             <Chip label="Dark Mode (Coming soon)" selected={false} />
           </View>
+        </Card>
+
+        {/* Insights & Analytics */}
+        <Card style={styles.card}>
+          <Pressable
+            onPress={() => router.push('/insights/monthly' as any)}
+            style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
+            accessibilityRole="button"
+            accessibilityLabel="View Monthly Progress Summary"
+          >
+            <View style={styles.rowTitle}>
+              <TrendingUp size={18} color={colors.forest} strokeWidth={2} />
+              <View style={{ marginLeft: spacing.sm, flex: 1 }}>
+                <Text style={styles.cardTitle}>Monthly Progress Summary</Text>
+                <Text style={styles.cardDescription}>
+                  Review calendar month stats, habit consistency, and milestones.
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={colors.muted} />
+          </Pressable>
+        </Card>
+
+        {/* Life Categories */}
+        <Card style={styles.card}>
+          <Pressable
+            onPress={() => router.push('/settings/categories' as any)}
+            style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Manage Life Categories"
+          >
+            <View style={styles.rowTitle}>
+              <Tag size={18} color={colors.forest} strokeWidth={2} />
+              <View style={{ marginLeft: spacing.sm, flex: 1 }}>
+                <Text style={styles.cardTitle}>Custom Life Categories</Text>
+                <Text style={styles.cardDescription}>
+                  Customize colors, icons, and personal life categories.
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={colors.muted} />
+          </Pressable>
         </Card>
 
         {/* Reminders & Notifications */}
