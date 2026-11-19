@@ -79,6 +79,22 @@ export default function RootLayout() {
             name="journal/[id]/edit"
             options={{ headerShown: false, presentation: 'modal' }}
           />
+          <Stack.Screen
+            name="weekly-review/index"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="weekly-review/history"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="weekly-review/[id]"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="settings/reminders"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
         </Stack>
       </AppProvider>
     </SafeAreaProvider>

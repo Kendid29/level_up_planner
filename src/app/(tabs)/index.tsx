@@ -19,6 +19,10 @@ import {
   CheckSquare,
   Repeat,
   FileText,
+  Clock,
+  Sparkles,
+  ChevronRight,
+  AlertCircle,
 } from 'lucide-react-native';
 import { useApp } from '../../context/AppContext';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
@@ -116,6 +120,59 @@ export default function HomeScreen() {
           <ProgressBar
             progressPercent={dashboardSummary.todayProgressPercent}
             showPercentText={false}
+          />
+        </Card>
+
+        {/* Overdue Tasks Alert (if any) */}
+        {dashboardSummary.overdueTasksCount > 0 ? (
+          <Pressable
+            onPress={() => router.push('/tasks')}
+            style={({ pressed }) => [styles.overdueBanner, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`${dashboardSummary.overdueTasksCount} overdue tasks. Tap to review.`}
+          >
+            <View style={styles.overdueLeft}>
+              <AlertCircle size={18} color="#8A4A36" />
+              <Text style={styles.overdueBannerText}>
+                {dashboardSummary.overdueTasksCount} task{dashboardSummary.overdueTasksCount > 1 ? 's' : ''} past due. Reschedule or check off.
+              </Text>
+            </View>
+            <ChevronRight size={18} color="#8A4A36" />
+          </Pressable>
+        ) : null}
+
+        {/* Weekly Review Prompt Banner */}
+        <Card style={styles.weeklyReviewCard}>
+          <View style={styles.weeklyReviewHeader}>
+            <View style={styles.weeklyReviewIcon}>
+              <Sparkles size={20} color={colors.forest} />
+            </View>
+            <View style={styles.weeklyReviewTextContainer}>
+              <Text style={styles.weeklyReviewTitle}>
+                {dashboardSummary.weeklyReviewPrompt?.isReviewed
+                  ? 'Weekly Review Completed'
+                  : 'Weekly Review'}
+              </Text>
+              <Text style={styles.weeklyReviewSubtitle}>
+                {dashboardSummary.weeklyReviewPrompt?.isReviewed
+                  ? 'Your reflection and intentions for this week are saved.'
+                  : 'Reflect on wins, challenges, and plan your next week.'}
+              </Text>
+            </View>
+          </View>
+          <Button
+            title={
+              dashboardSummary.weeklyReviewPrompt?.isReviewed
+                ? 'View Review History'
+                : 'Start Weekly Review'
+            }
+            variant={dashboardSummary.weeklyReviewPrompt?.isReviewed ? 'secondary' : 'primary'}
+            onPress={() =>
+              dashboardSummary.weeklyReviewPrompt?.isReviewed
+                ? router.push('/weekly-review/history' as any)
+                : router.push('/weekly-review' as any)
+            }
+            style={styles.weeklyReviewBtn}
           />
         </Card>
 
@@ -438,5 +495,69 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.muted,
     textAlign: 'center',
+  },
+  overdueBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FDEEE9',
+    borderWidth: 1,
+    borderColor: '#E8D2C5',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.base,
+  },
+  overdueLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  overdueBannerText: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: '#8A4A36',
+    flex: 1,
+  },
+  weeklyReviewCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.base,
+    backgroundColor: '#F4F7F2',
+    borderWidth: 1,
+    borderColor: colors.paleSage,
+  },
+  weeklyReviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  weeklyReviewIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paleSage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weeklyReviewTextContainer: {
+    flex: 1,
+  },
+  weeklyReviewTitle: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.charcoal,
+  },
+  weeklyReviewSubtitle: {
+    ...typography.caption,
+    color: colors.muted,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  weeklyReviewBtn: {
+    marginTop: spacing.xs,
   },
 });
