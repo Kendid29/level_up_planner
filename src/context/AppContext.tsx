@@ -12,6 +12,10 @@ import {
   GoalWithProgress,
   HabitWithWeeklyProgress,
   DashboardSummary,
+  WeeklyReview,
+  WeeklyReviewWithPriorities,
+  ReminderPreference,
+  ReminderType,
 } from '../types/models';
 import { getDatabase } from '../database/db';
 import { DEFAULT_USER_ID } from '../database/schema';
@@ -22,8 +26,11 @@ import * as habitRepo from '../repositories/habitRepository';
 import * as noteRepo from '../repositories/noteRepository';
 import * as journalRepo from '../repositories/journalRepository';
 import * as profileRepo from '../repositories/profileRepository';
+import * as weeklyReviewRepo from '../repositories/weeklyReviewRepository';
+import * as reminderRepo from '../repositories/reminderRepository';
+import * as notificationService from '../services/notificationService';
 import { aggregateGoal, aggregateHabit } from '../domain/planning';
-import { formatLocalDate, getGreeting, formatHeaderDate } from '../domain/dates';
+import { formatLocalDate, getGreeting, formatHeaderDate, isTaskOverdue, getWeekPeriod } from '../domain/dates';
 
 interface AppContextValue {
   isLoading: boolean;
@@ -35,6 +42,8 @@ interface AppContextValue {
   habitLogs: HabitLog[];
   notes: Note[];
   journalEntries: JournalEntry[];
+  weeklyReviews: WeeklyReview[];
+  reminderPreferences: ReminderPreference[];
 
   // Aggregated Views
   goalsWithProgress: GoalWithProgress[];
@@ -78,6 +87,20 @@ interface AppContextValue {
   updateJournalEntry: (id: string, updates: Partial<JournalEntry>) => Promise<JournalEntry>;
   deleteJournalEntry: (id: string) => Promise<void>;
 
+  // Phase 1: Weekly Review
+  saveWeeklyReview: (
+    review: Omit<WeeklyReview, 'id' | 'created_at' | 'updated_at'>,
+    priorities?: { title: string; related_goal_id: string | null }[]
+  ) => Promise<WeeklyReviewWithPriorities>;
+  deleteWeeklyReview: (id: string) => Promise<void>;
+  getWeeklyReviewById: (id: string) => Promise<WeeklyReviewWithPriorities | null>;
+
+  // Phase 1: Reminders & Permissions
+  updateReminderPreference: (
+    type: ReminderType,
+    updates: Partial<Omit<ReminderPreference, 'id' | 'user_id' | 'reminder_type' | 'updated_at'>>
+  ) => Promise<ReminderPreference>;
+
   // Profile & Settings
   updateProfile: (updates: Partial<Profile>) => Promise<Profile>;
   resetAllData: () => Promise<void>;
@@ -95,6 +118,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [habitLogs, setHabitLogs] = useState<HabitLog[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [weeklyReviews, setWeeklyReviews] = useState<WeeklyReview[]>([]);
+  const [reminderPreferences, setReminderPreferences] = useState<ReminderPreference[]>([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -107,6 +132,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const hl = await habitRepo.getAllHabitLogs();
       const n = await noteRepo.getNotes(DEFAULT_USER_ID);
       const j = await journalRepo.getJournalEntries(DEFAULT_USER_ID);
+      const wr = await weeklyReviewRepo.getWeeklyReviews(DEFAULT_USER_ID);
+      const rp = await reminderRepo.getReminderPreferences(DEFAULT_USER_ID);
 
       setProfile(p);
       setGoals(g);
@@ -116,6 +143,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setHabitLogs(hl);
       setNotes(n);
       setJournalEntries(j);
+      setWeeklyReviews(wr);
+      setReminderPreferences(rp);
     } catch (error) {
       console.error('Failed to load local data:', error);
     } finally {
@@ -157,8 +186,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .filter((t) => t.status === 'todo' && t.due_at !== null && t.due_at >= todayStr)
       .slice(0, 5);
 
+    const overdueTasksCount = tasks.filter(
+      (t) => t.status === 'todo' && isTaskOverdue(t.due_at, t.due_time, todayStr)
+    ).length;
+
     const activeGoals = goalsWithProgress.slice(0, 3);
     const habitsOverview = habitsWithProgress.slice(0, 4);
+
+    // Weekly review prompt: check if current week's review exists
+    const currentWeek = getWeekPeriod(new Date(), profile?.week_start ?? 1);
+    const isReviewedThisWeek = weeklyReviews.some((wr) => wr.period_key === currentWeek.periodKey);
 
     return {
       greeting: getGreeting(),
@@ -170,8 +207,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       upcomingDeadlines,
       activeGoals,
       habitsOverview,
+      overdueTasksCount,
+      weeklyReviewPrompt: {
+        weekStartDate: currentWeek.weekStartDate,
+        weekEndDate: currentWeek.weekEndDate,
+        isReviewed: isReviewedThisWeek,
+      },
     };
-  }, [tasks, goalsWithProgress, habitsWithProgress]);
+  }, [tasks, goalsWithProgress, habitsWithProgress, weeklyReviews, profile?.week_start]);
 
   // Goal actions
   const createGoal = useCallback(
@@ -270,18 +313,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTask = useCallback(
     async (id: string) => {
-      await taskRepo.toggleTask(id);
+      const existing = tasks.find((t) => t.id === id);
+      const updated = await taskRepo.toggleTask(id);
+      if (updated.status === 'completed' && existing?.notification_id) {
+        await notificationService.cancelNotification(existing.notification_id);
+      }
       await loadData();
     },
-    [loadData]
+    [tasks, loadData]
   );
 
   const deleteTask = useCallback(
     async (id: string) => {
+      const existing = tasks.find((t) => t.id === id);
+      if (existing?.notification_id) {
+        await notificationService.cancelNotification(existing.notification_id);
+      }
       await taskRepo.deleteTask(id);
       await loadData();
     },
-    [loadData]
+    [tasks, loadData]
   );
 
   // Habit actions
@@ -316,18 +367,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const archiveHabit = useCallback(
     async (id: string) => {
+      const existing = habits.find((h) => h.id === id);
+      if (existing?.reminder_notification_ids) {
+        try {
+          const ids = JSON.parse(existing.reminder_notification_ids);
+          if (Array.isArray(ids)) {
+            await notificationService.cancelMultipleNotifications(ids);
+          }
+        } catch {}
+      }
       await habitRepo.archiveHabit(id);
       await loadData();
     },
-    [loadData]
+    [habits, loadData]
   );
 
   const deleteHabit = useCallback(
     async (id: string) => {
+      const existing = habits.find((h) => h.id === id);
+      if (existing?.reminder_notification_ids) {
+        try {
+          const ids = JSON.parse(existing.reminder_notification_ids);
+          if (Array.isArray(ids)) {
+            await notificationService.cancelMultipleNotifications(ids);
+          }
+        } catch {}
+      }
       await habitRepo.deleteHabit(id);
       await loadData();
     },
-    [loadData]
+    [habits, loadData]
   );
 
   // Note actions
@@ -390,6 +459,76 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [loadData]
   );
 
+  // Phase 1: Weekly Review actions
+  const saveWeeklyReview = useCallback(
+    async (
+      reviewData: Omit<WeeklyReview, 'id' | 'created_at' | 'updated_at'>,
+      priorities: { title: string; related_goal_id: string | null }[] = []
+    ) => {
+      const saved = await weeklyReviewRepo.saveWeeklyReview(reviewData, priorities);
+      await loadData();
+      return saved;
+    },
+    [loadData]
+  );
+
+  const deleteWeeklyReview = useCallback(
+    async (id: string) => {
+      await weeklyReviewRepo.deleteWeeklyReview(id);
+      await loadData();
+    },
+    [loadData]
+  );
+
+  const getWeeklyReviewById = useCallback(async (id: string) => {
+    return await weeklyReviewRepo.getWeeklyReviewById(id);
+  }, []);
+
+  // Phase 1: Reminder Preference actions
+  const updateReminderPreference = useCallback(
+    async (
+      type: ReminderType,
+      updates: Partial<Omit<ReminderPreference, 'id' | 'user_id' | 'reminder_type' | 'updated_at'>>
+    ) => {
+      const existing = reminderPreferences.find((rp) => rp.reminder_type === type);
+      const isEnabling = updates.enabled !== undefined ? updates.enabled === 1 : existing?.enabled === 1;
+      const scheduledTime = updates.scheduled_time || existing?.scheduled_time || '08:00';
+      const scheduledDay = updates.scheduled_day !== undefined ? updates.scheduled_day : (existing?.scheduled_day ?? 0);
+
+      let nextNotificationId: string | null = existing?.notification_id || null;
+
+      if (!isEnabling) {
+        if (existing?.notification_id) {
+          await notificationService.cancelNotification(existing.notification_id);
+          nextNotificationId = null;
+        }
+      } else {
+        // Cancel existing and reschedule
+        if (existing?.notification_id) {
+          await notificationService.cancelNotification(existing.notification_id);
+        }
+
+        if (type === 'daily_planning') {
+          nextNotificationId = await notificationService.scheduleDailyPlanningReminder(scheduledTime);
+        } else if (type === 'weekly_review') {
+          nextNotificationId = await notificationService.scheduleWeeklyReviewReminder(
+            scheduledDay,
+            scheduledTime
+          );
+        }
+      }
+
+      const updated = await reminderRepo.updateReminderPreference(DEFAULT_USER_ID, type, {
+        ...updates,
+        notification_id: nextNotificationId,
+      });
+
+      await loadData();
+      return updated;
+    },
+    [reminderPreferences, loadData]
+  );
+
   // Profile actions
   const updateProfile = useCallback(
     async (updates: Partial<Profile>) => {
@@ -415,6 +554,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     habitLogs,
     notes,
     journalEntries,
+    weeklyReviews,
+    reminderPreferences,
     goalsWithProgress,
     habitsWithProgress,
     dashboardSummary,
@@ -442,6 +583,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createJournalEntry,
     updateJournalEntry,
     deleteJournalEntry,
+    saveWeeklyReview,
+    deleteWeeklyReview,
+    getWeeklyReviewById,
+    updateReminderPreference,
     updateProfile,
     resetAllData,
   }), [
@@ -454,6 +599,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     habitLogs,
     notes,
     journalEntries,
+    weeklyReviews,
+    reminderPreferences,
     goalsWithProgress,
     habitsWithProgress,
     dashboardSummary,
@@ -481,6 +628,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createJournalEntry,
     updateJournalEntry,
     deleteJournalEntry,
+    saveWeeklyReview,
+    deleteWeeklyReview,
+    getWeeklyReviewById,
+    updateReminderPreference,
     updateProfile,
     resetAllData,
   ]);
