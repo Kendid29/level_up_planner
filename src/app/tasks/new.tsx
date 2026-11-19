@@ -23,7 +23,7 @@ import { Chip } from '../../components/common/Chip';
 import { formatLocalDate } from '../../domain/dates';
 import * as notificationService from '../../services/notificationService';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'Personal Growth',
   'Health & Wellness',
   'Career',
@@ -39,7 +39,9 @@ export default function NewTaskScreen() {
   const params = useLocalSearchParams<{ goalId?: string; dueDate?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { goals, milestones, createTask } = useApp();
+  const { goals, milestones, createTask, categories } = useApp();
+  const availableCategories =
+    categories.length > 0 ? categories.map((c) => c.name) : DEFAULT_CATEGORIES;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -47,7 +49,7 @@ export default function NewTaskScreen() {
   const [dueTime, setDueTime] = useState('');
   const [enableReminder, setEnableReminder] = useState(false);
   const [priority, setPriority] = useState<PriorityLevel>('medium');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState(availableCategories[0] || 'Personal Growth');
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(
     params.goalId || null
   );
@@ -206,7 +208,7 @@ export default function NewTaskScreen() {
         {/* Category */}
         <Text style={styles.sectionLabel}>Category</Text>
         <View style={styles.chipRow}>
-          {CATEGORIES.map((cat) => (
+          {availableCategories.map((cat) => (
             <Chip
               key={cat}
               label={cat}

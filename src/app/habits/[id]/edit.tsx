@@ -22,17 +22,30 @@ import { Chip } from '@/components/common/Chip';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import * as notificationService from '@/services/notificationService';
 
+const DEFAULT_CATEGORIES = [
+  'Personal Growth',
+  'Health & Wellness',
+  'Career',
+  'Education',
+  'Finance',
+  'Relationships',
+  'Lifestyle',
+];
+
 const FREQUENCIES = [1, 2, 3, 4, 5, 6, 7];
 
 export default function EditHabitScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { habits, updateHabit, deleteHabit } = useApp();
+  const { habits, updateHabit, deleteHabit, categories } = useApp();
+  const availableCategories =
+    categories.length > 0 ? categories.map((c) => c.name) : DEFAULT_CATEGORIES;
 
   const habit = habits.find((h) => h.id === id);
 
   const [title, setTitle] = useState(habit?.title || '');
+  const [category, setCategory] = useState(habit?.category || availableCategories[0]);
   const [frequency, setFrequency] = useState(habit?.frequency || 7);
   const [reminderTime, setReminderTime] = useState(habit?.reminder_time || '08:00');
   const [enableReminder, setEnableReminder] = useState(Boolean(habit?.reminder_time));
@@ -102,6 +115,7 @@ export default function EditHabitScreen() {
 
       await updateHabit(habit.id, {
         title: title.trim(),
+        category,
         frequency,
         reminder_time: enableReminder ? reminderTime.trim() || '08:00' : null,
         reminder_notification_ids:
@@ -137,6 +151,19 @@ export default function EditHabitScreen() {
           }}
           error={error}
         />
+
+        {/* Category */}
+        <Text style={styles.sectionLabel}>Category</Text>
+        <View style={styles.chipRow}>
+          {availableCategories.map((cat) => (
+            <Chip
+              key={cat}
+              label={cat}
+              selected={category === cat}
+              onPress={() => setCategory(cat)}
+            />
+          ))}
+        </View>
 
         <Text style={styles.sectionLabel}>Target Frequency (Days per week)</Text>
         <View style={styles.chipRow}>

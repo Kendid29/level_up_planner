@@ -19,7 +19,7 @@ import { Button } from '../../components/common/Button';
 import { Chip } from '../../components/common/Chip';
 import { formatLocalDate } from '../../domain/dates';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'Personal Growth',
   'Health & Wellness',
   'Career',
@@ -40,12 +40,14 @@ const PRIORITIES: PriorityLevel[] = ['low', 'medium', 'high'];
 export default function NewGoalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { createGoal } = useApp();
+  const { createGoal, categories } = useApp();
+  const availableCategories =
+    categories.length > 0 ? categories.map((c) => c.name) : DEFAULT_CATEGORIES;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [horizon, setHorizon] = useState<GoalHorizon>('short');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState(availableCategories[0] || 'Personal Growth');
   const [priority, setPriority] = useState<PriorityLevel>('medium');
   const [targetDate, setTargetDate] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export default function NewGoalScreen() {
         {/* Category Selection */}
         <Text style={styles.sectionLabel}>Category</Text>
         <View style={styles.chipRow}>
-          {CATEGORIES.map((cat) => (
+          {availableCategories.map((cat) => (
             <Chip
               key={cat}
               label={cat}

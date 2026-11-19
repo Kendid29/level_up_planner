@@ -24,7 +24,7 @@ import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { formatLocalDate } from '@/domain/dates';
 import * as notificationService from '@/services/notificationService';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'Personal Growth',
   'Health & Wellness',
   'Career',
@@ -40,7 +40,9 @@ export default function EditTaskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { tasks, goals, milestones, updateTask, deleteTask } = useApp();
+  const { tasks, goals, milestones, updateTask, deleteTask, categories } = useApp();
+  const availableCategories =
+    categories.length > 0 ? categories.map((c) => c.name) : DEFAULT_CATEGORIES;
 
   const task = tasks.find((t) => t.id === id);
 
@@ -50,7 +52,7 @@ export default function EditTaskScreen() {
   const [dueTime, setDueTime] = useState(task?.due_time || '');
   const [enableReminder, setEnableReminder] = useState(Boolean(task?.notification_id || task?.reminder_at));
   const [priority, setPriority] = useState<PriorityLevel>(task?.priority || 'medium');
-  const [category, setCategory] = useState(task?.category || CATEGORIES[0]);
+  const [category, setCategory] = useState(task?.category || availableCategories[0]);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(
     task?.goal_id || null
   );
@@ -242,7 +244,7 @@ export default function EditTaskScreen() {
         {/* Category */}
         <Text style={styles.sectionLabel}>Category</Text>
         <View style={styles.chipRow}>
-          {CATEGORIES.map((cat) => (
+          {availableCategories.map((cat) => (
             <Chip
               key={cat}
               label={cat}

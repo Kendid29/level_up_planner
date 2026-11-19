@@ -18,7 +18,7 @@ import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
 import { Chip } from '@/components/common/Chip';
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'Personal Growth',
   'Health & Wellness',
   'Career',
@@ -40,14 +40,16 @@ export default function EditGoalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { goals, updateGoal } = useApp();
+  const { goals, updateGoal, categories } = useApp();
+  const availableCategories =
+    categories.length > 0 ? categories.map((c) => c.name) : DEFAULT_CATEGORIES;
 
   const goal = goals.find((g) => g.id === id);
 
   const [title, setTitle] = useState(goal?.title || '');
   const [description, setDescription] = useState(goal?.description || '');
   const [horizon, setHorizon] = useState<GoalHorizon>(goal?.horizon || 'short');
-  const [category, setCategory] = useState(goal?.category || CATEGORIES[0]);
+  const [category, setCategory] = useState(goal?.category || availableCategories[0]);
   const [priority, setPriority] = useState<PriorityLevel>(goal?.priority || 'medium');
   const [targetDate, setTargetDate] = useState(goal?.target_date || '');
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +137,7 @@ export default function EditGoalScreen() {
 
         <Text style={styles.sectionLabel}>Category</Text>
         <View style={styles.chipRow}>
-          {CATEGORIES.map((cat) => (
+          {availableCategories.map((cat) => (
             <Chip
               key={cat}
               label={cat}

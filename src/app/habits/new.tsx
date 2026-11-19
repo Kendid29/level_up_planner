@@ -22,14 +22,27 @@ import { Chip } from '../../components/common/Chip';
 import { formatLocalDate } from '../../domain/dates';
 import * as notificationService from '../../services/notificationService';
 
+const DEFAULT_CATEGORIES = [
+  'Personal Growth',
+  'Health & Wellness',
+  'Career',
+  'Education',
+  'Finance',
+  'Relationships',
+  'Lifestyle',
+];
+
 const FREQUENCIES = [1, 2, 3, 4, 5, 6, 7];
 
 export default function NewHabitScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { createHabit } = useApp();
+  const { createHabit, categories } = useApp();
+  const availableCategories =
+    categories.length > 0 ? categories.map((c) => c.name) : DEFAULT_CATEGORIES;
 
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState(availableCategories[0] || 'Personal Growth');
   const [frequency, setFrequency] = useState(7);
   const [reminderTime, setReminderTime] = useState('08:00');
   const [enableReminder, setEnableReminder] = useState(false);
@@ -74,6 +87,7 @@ export default function NewHabitScreen() {
 
       await createHabit({
         title: title.trim(),
+        category,
         frequency,
         active_days: JSON.stringify(activeDays),
         start_date: todayStr,
@@ -113,6 +127,19 @@ export default function NewHabitScreen() {
           error={error}
           autoFocus
         />
+
+        {/* Category */}
+        <Text style={styles.sectionLabel}>Category</Text>
+        <View style={styles.chipRow}>
+          {availableCategories.map((cat) => (
+            <Chip
+              key={cat}
+              label={cat}
+              selected={category === cat}
+              onPress={() => setCategory(cat)}
+            />
+          ))}
+        </View>
 
         <Text style={styles.sectionLabel}>Target Frequency (Days per week)</Text>
         <View style={styles.chipRow}>
