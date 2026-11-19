@@ -115,6 +115,10 @@ export default function RootLayout() {
             name="goals/achievement-[id]"
             options={{ headerShown: false, presentation: 'card' }}
           />
+          <Stack.Screen
+            name="settings/data"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
         </Stack>
       </AppProvider>
     </SafeAreaProvider>

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { User, Bell, Shield, Info, Trash2, ChevronRight, TrendingUp, Tag } from 'lucide-react-native';
+import { User, Bell, Shield, Info, Trash2, ChevronRight, TrendingUp, Tag, Database } from 'lucide-react-native';
 import { useApp } from '@/context/AppContext';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
@@ -182,23 +182,23 @@ export default function ProfileScreen() {
 
         {/* Privacy & Data Management */}
         <Card style={styles.card}>
-          <View style={styles.rowTitle}>
-            <Shield size={18} color={colors.charcoal} strokeWidth={2} />
-            <Text style={[styles.cardTitle, { marginLeft: spacing.xs }]}>
-              Data & Privacy
-            </Text>
-          </View>
-          <Text style={styles.cardDescription}>
-            All goals, milestones, tasks, habits, notes, and journal entries are stored privately on your device.
-          </Text>
-
-          <Button
-            title="Reset All Planner Data"
-            variant="destructive"
-            onPress={() => setShowResetModal(true)}
-            leftIcon={<Trash2 size={16} color={colors.white} strokeWidth={2} />}
-            style={{ marginTop: spacing.sm }}
-          />
+          <Pressable
+            onPress={() => router.push('/settings/data' as any)}
+            style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Manage Data & Privacy"
+          >
+            <View style={styles.rowTitle}>
+              <Database size={18} color={colors.forest} strokeWidth={2} />
+              <View style={{ marginLeft: spacing.sm, flex: 1 }}>
+                <Text style={styles.cardTitle}>Data Ownership & Backup</Text>
+                <Text style={styles.cardDescription}>
+                  Backup to JSON, restore archives, export CSV, and control your data.
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={colors.muted} />
+          </Pressable>
         </Card>
 
         {/* About App */}
