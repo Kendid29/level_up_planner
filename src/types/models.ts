@@ -28,6 +28,8 @@ export interface Goal {
   target_date: string | null;
   priority: PriorityLevel;
   status: GoalStatus;
+  completed_at?: string | null;
+  completion_note?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +69,7 @@ export interface Habit {
   id: string;
   user_id: string;
   title: string;
+  category?: string | null;
   frequency: number; // e.g. 7 days a week, 5 days, etc.
   active_days: string; // JSON array of numbers [0,1,2,3,4,5,6]
   start_date: string; // YYYY-MM-DD
@@ -206,4 +209,88 @@ export interface DashboardSummary {
     weekEndDate: string;
     isReviewed: boolean;
   } | null;
+}
+
+// Phase 2: Custom Categories
+export interface Category {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+  is_default: number; // 1 or 0
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Phase 2: Monthly Progress Summary
+export interface MonthlyProgressSummary {
+  year: number;
+  month: number; // 1-12
+  monthName: string; // e.g. "November"
+  monthLabel: string; // e.g. "November 2026"
+  monthStartDate: string; // YYYY-MM-DD
+  monthEndDate: string; // YYYY-MM-DD
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+  taskCompletionRate: number; // 0-100%
+  activeGoalsCount: number;
+  completedGoalsCount: number;
+  completedMilestonesCount: number;
+  habitCompletionRate: number; // 0-100%
+  completedGoals: GoalWithProgress[];
+  completedMilestones: Milestone[];
+  bestHabit: {
+    habit: Habit;
+    completionRate: number;
+    completedDays: number;
+    scheduledDays: number;
+  } | null;
+  comparisonWithPreviousMonth: {
+    hasPreviousMonth: boolean;
+    taskRateDelta: number | null; // percentage points e.g. +5
+    habitRateDelta: number | null;
+    completedTasksDelta: number | null;
+  };
+}
+
+// Phase 2: Habit Statistics Models
+export interface HabitDetailedStats {
+  habit: Habit;
+  weeklyCompletionRate: number;
+  monthlyCompletionRate: number;
+  isTargetAchievedThisWeek: boolean;
+  totalCompletionsAllTime: number;
+  activeDaysFormatted: string;
+  monthlyCalendarDays: {
+    dateStr: string;
+    dayNumber: number;
+    isScheduled: boolean;
+    isCompleted: boolean;
+    isFuture: boolean;
+    isToday: boolean;
+  }[];
+  recentHistory: {
+    dateStr: string;
+    completed: boolean;
+  }[];
+}
+
+export interface HabitOverviewStats {
+  totalActiveHabits: number;
+  weeklyCompletionRate: number;
+  monthlyCompletionRate: number;
+  habitsMeetingTargetCount: number;
+  habitsWithProgress: (HabitWithWeeklyProgress & {
+    monthlyCompletionRate: number;
+    meetsFrequencyTarget: boolean;
+  })[];
+}
+
+// Phase 2: Goal Achievement History Item
+export interface GoalAchievementItem extends GoalWithProgress {
+  completedMilestonesList: Milestone[];
+  linkedCompletedTasksList: Task[];
 }

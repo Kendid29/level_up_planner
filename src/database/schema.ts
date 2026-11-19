@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS goals (
   target_date TEXT,
   priority TEXT NOT NULL DEFAULT 'medium',
   status TEXT NOT NULL DEFAULT 'active',
+  completed_at TEXT,
+  completion_note TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -64,6 +66,7 @@ CREATE TABLE IF NOT EXISTS habits (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   title TEXT NOT NULL,
+  category TEXT,
   frequency INTEGER NOT NULL DEFAULT 7,
   active_days TEXT NOT NULL DEFAULT '[0,1,2,3,4,5,6]',
   start_date TEXT NOT NULL,
@@ -142,6 +145,19 @@ CREATE TABLE IF NOT EXISTS reminder_preferences (
   notification_id TEXT,
   updated_at TEXT NOT NULL,
   UNIQUE(user_id, reminder_type)
+);
+
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  archived_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(user_id, name)
 );
 `;
 

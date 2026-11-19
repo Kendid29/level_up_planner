@@ -18,13 +18,16 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
 export async function initDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
   await db.execAsync(CREATE_TABLES_SQL);
 
-  // Safe migrations for Phase 1 columns if existing tables existed
+  // Safe migrations for Phase 1 & Phase 2 columns if existing tables existed
   const alterColumns = [
     'ALTER TABLE tasks ADD COLUMN due_time TEXT;',
     'ALTER TABLE tasks ADD COLUMN reminder_at TEXT;',
     'ALTER TABLE tasks ADD COLUMN notification_id TEXT;',
     'ALTER TABLE habits ADD COLUMN reminder_time TEXT;',
     'ALTER TABLE habits ADD COLUMN reminder_notification_ids TEXT;',
+    'ALTER TABLE habits ADD COLUMN category TEXT;',
+    'ALTER TABLE goals ADD COLUMN completed_at TEXT;',
+    'ALTER TABLE goals ADD COLUMN completion_note TEXT;',
   ];
 
   for (const sql of alterColumns) {
@@ -55,6 +58,37 @@ export async function initDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
 
   // Ensure default reminder preferences exist
   await seedDefaultReminders(db);
+
+  // Ensure default categories exist (Phase 2)
+  await seedDefaultCategories(db);
+}
+
+async function seedDefaultCategories(db: SQLite.SQLiteDatabase): Promise<void> {
+  const existingCount = await db.getFirstAsync<{ count: number }>(
+    'SELECT count(*) as count FROM categories WHERE user_id = ?',
+    [DEFAULT_USER_ID]
+  );
+
+  if (!existingCount || existingCount.count === 0) {
+    const now = new Date().toISOString();
+    const defaults = [
+      { id: 'cat_personal_growth', name: 'Personal Growth', color: '#526B56', icon: 'Sparkles' },
+      { id: 'cat_career', name: 'Career', color: '#4A6B82', icon: 'Briefcase' },
+      { id: 'cat_health', name: 'Health', color: '#6B8E7B', icon: 'Heart' },
+      { id: 'cat_finance', name: 'Finance', color: '#7E7958', icon: 'DollarSign' },
+      { id: 'cat_relationships', name: 'Relationships', color: '#A66B6B', icon: 'Users' },
+      { id: 'cat_education', name: 'Education', color: '#657388', icon: 'BookOpen' },
+      { id: 'cat_lifestyle', name: 'Lifestyle', color: '#8C7355', icon: 'Coffee' },
+    ];
+
+    for (const cat of defaults) {
+      await db.runAsync(
+        `INSERT INTO categories (id, user_id, name, color, icon, is_default, archived_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 1, null, ?, ?)`,
+        [cat.id, DEFAULT_USER_ID, cat.name, cat.color, cat.icon, now, now]
+      );
+    }
+  }
 }
 
 async function seedDefaultReminders(db: SQLite.SQLiteDatabase): Promise<void> {

@@ -137,6 +137,61 @@ export function isTaskOverdue(
   return false;
 }
 
+export interface MonthPeriod {
+  year: number;
+  month: number; // 1-12
+  monthName: string; // e.g. "November"
+  monthLabel: string; // e.g. "November 2026"
+  monthStartDate: string; // YYYY-MM-DD
+  monthEndDate: string; // YYYY-MM-DD
+  prevYear: number;
+  prevMonth: number;
+  nextYear: number;
+  nextMonth: number;
+}
+
+export function getMonthPeriod(year: number = new Date().getFullYear(), month: number = new Date().getMonth() + 1): MonthPeriod {
+  // Ensure valid year and month
+  let y = year;
+  let m = month;
+  if (m < 1) {
+    y -= 1;
+    m = 12;
+  } else if (m > 12) {
+    y += 1;
+    m = 1;
+  }
+
+  const firstDay = new Date(y, m - 1, 1);
+  const lastDayDate = new Date(y, m, 0);
+  const lastDay = lastDayDate.getDate();
+
+  const monthStartDate = `${y}-${String(m).padStart(2, '0')}-01`;
+  const monthEndDate = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  const monthName = firstDay.toLocaleDateString('en-US', { month: 'long' });
+  const monthLabel = `${monthName} ${y}`;
+
+  const prevMonth = m === 1 ? 12 : m - 1;
+  const prevYear = m === 1 ? y - 1 : y;
+
+  const nextMonth = m === 12 ? 1 : m + 1;
+  const nextYear = m === 12 ? y + 1 : y;
+
+  return {
+    year: y,
+    month: m,
+    monthName,
+    monthLabel,
+    monthStartDate,
+    monthEndDate,
+    prevYear,
+    prevMonth,
+    nextYear,
+    nextMonth,
+  };
+}
+
 export interface WeekPeriod {
   weekStartDate: string; // YYYY-MM-DD
   weekEndDate: string; // YYYY-MM-DD

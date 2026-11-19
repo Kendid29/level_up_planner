@@ -6,6 +6,9 @@ import {
   aggregateGoal,
   aggregateHabit,
   calculateWeeklyStats,
+  calculateMonthlyStats,
+  calculateHabitDetailedStats,
+  calculateHabitOverviewStats,
 } from '../planning';
 import {
   formatLocalDate,
@@ -16,6 +19,7 @@ import {
   isDateUpcoming,
   isTaskOverdue,
   getWeekPeriod,
+  getMonthPeriod,
 } from '../dates';
 import { Milestone, Task, Goal, Habit, HabitLog } from '../../types/models';
 
@@ -421,5 +425,215 @@ describe('Date Utilities', () => {
   it('formats display dates', () => {
     const today = formatLocalDate(new Date());
     expect(formatDisplayDate(today)).toBe('Today');
+  });
+});
+
+describe('Phase 2: Monthly Progress Summary', () => {
+  const sampleTasks: Task[] = [
+    {
+      id: 't_nov_1',
+      user_id: 'u1',
+      goal_id: 'g1',
+      milestone_id: null,
+      title: 'Nov Task 1',
+      description: null,
+      due_at: '2026-11-05',
+      priority: 'high',
+      status: 'completed',
+      category: 'Health',
+      completed_at: '2026-11-05T10:00:00Z',
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 't_nov_2',
+      user_id: 'u1',
+      goal_id: 'g1',
+      milestone_id: null,
+      title: 'Nov Task 2',
+      description: null,
+      due_at: '2026-11-15',
+      priority: 'medium',
+      status: 'todo',
+      category: 'Health',
+      completed_at: null,
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 't_oct_1',
+      user_id: 'u1',
+      goal_id: null,
+      milestone_id: null,
+      title: 'Oct Task 1',
+      description: null,
+      due_at: '2026-10-20',
+      priority: 'low',
+      status: 'completed',
+      category: 'Career',
+      completed_at: '2026-10-20T09:00:00Z',
+      created_at: '',
+      updated_at: '',
+    },
+  ];
+
+  const sampleGoals: Goal[] = [
+    {
+      id: 'g1',
+      user_id: 'u1',
+      title: 'Active Goal',
+      description: null,
+      horizon: 'short',
+      category: 'Health',
+      start_date: '2026-11-01',
+      target_date: '2026-12-01',
+      priority: 'high',
+      status: 'active',
+      created_at: '',
+      updated_at: '',
+    },
+    {
+      id: 'g2',
+      user_id: 'u1',
+      title: 'Completed Goal in Nov',
+      description: null,
+      horizon: 'short',
+      category: 'Personal Growth',
+      start_date: '2026-10-01',
+      target_date: '2026-11-15',
+      priority: 'medium',
+      status: 'completed',
+      completed_at: '2026-11-12T15:00:00Z',
+      completion_note: 'Reached key morning routine milestone!',
+      created_at: '',
+      updated_at: '',
+    },
+  ];
+
+  const sampleMilestones: Milestone[] = [
+    {
+      id: 'm1',
+      goal_id: 'g1',
+      title: 'Milestone in Nov',
+      description: null,
+      sort_order: 1,
+      target_date: '2026-11-20',
+      completed_at: '2026-11-10T12:00:00Z',
+      created_at: '',
+      updated_at: '',
+    },
+  ];
+
+  const sampleHabits: Habit[] = [
+    {
+      id: 'h1',
+      user_id: 'u1',
+      title: 'Daily Walk',
+      category: 'Health',
+      frequency: 7,
+      active_days: '[0,1,2,3,4,5,6]',
+      start_date: '2026-11-01',
+      archived_at: null,
+      created_at: '',
+      updated_at: '',
+    },
+  ];
+
+  const sampleLogs: HabitLog[] = [
+    { id: 'l1', habit_id: 'h1', log_date: '2026-11-01', completed: 1, created_at: '' },
+    { id: 'l2', habit_id: 'h1', log_date: '2026-11-02', completed: 1, created_at: '' },
+    { id: 'l3', habit_id: 'h1', log_date: '2026-11-03', completed: 1, created_at: '' },
+  ];
+
+  it('calculates monthly summary stats accurately without cross-month leakage', () => {
+    const summary = calculateMonthlyStats(2026, 11, sampleTasks, sampleGoals, sampleMilestones, sampleHabits, sampleLogs);
+
+    expect(summary.monthName).toBe('November');
+    expect(summary.totalTasks).toBe(2); // Only Nov tasks
+    expect(summary.completedTasks).toBe(1);
+    expect(summary.pendingTasks).toBe(1);
+    expect(summary.taskCompletionRate).toBe(50);
+    expect(summary.activeGoalsCount).toBe(1);
+    expect(summary.completedGoalsCount).toBe(1);
+    expect(summary.completedMilestonesCount).toBe(1);
+    expect(summary.bestHabit).not.toBeNull();
+    expect(summary.bestHabit?.habit.id).toBe('h1');
+  });
+
+  it('correctly compares with previous month when previous data exists', () => {
+    const summary = calculateMonthlyStats(2026, 11, sampleTasks, sampleGoals, sampleMilestones, sampleHabits, sampleLogs);
+    // Oct had 1 task, completed 1 => 100%
+    // Nov has 50% => delta is 50 - 100 = -50%
+    expect(summary.comparisonWithPreviousMonth.hasPreviousMonth).toBe(true);
+    expect(summary.comparisonWithPreviousMonth.taskRateDelta).toBe(-50);
+  });
+
+  it('handles empty previous month cleanly without synthetic values', () => {
+    const summary = calculateMonthlyStats(2026, 10, sampleTasks, sampleGoals, sampleMilestones, sampleHabits, sampleLogs);
+    // Sept has 0 tasks => hasPreviousMonth false
+    expect(summary.comparisonWithPreviousMonth.hasPreviousMonth).toBe(false);
+    expect(summary.comparisonWithPreviousMonth.taskRateDelta).toBeNull();
+  });
+});
+
+describe('Phase 2: Habit Detailed & Overview Statistics', () => {
+  const habit: Habit = {
+    id: 'h_test',
+    user_id: 'u1',
+    title: 'Workout',
+    category: 'Health',
+    frequency: 3,
+    active_days: '[1,3,5]', // Mon, Wed, Fri
+    start_date: '2026-11-01',
+    archived_at: null,
+    created_at: '',
+    updated_at: '',
+  };
+
+  const logs: HabitLog[] = [
+    { id: 'hl1', habit_id: 'h_test', log_date: '2026-11-02', completed: 1, created_at: '' }, // Monday
+    { id: 'hl2', habit_id: 'h_test', log_date: '2026-11-04', completed: 1, created_at: '' }, // Wednesday
+    { id: 'hl3', habit_id: 'h_test', log_date: '2026-11-06', completed: 1, created_at: '' }, // Friday
+  ];
+
+  it('calculates individual habit detailed statistics and calendar accurately', () => {
+    const refDate = new Date(2026, 10, 8); // Nov 8 2026 (Sunday)
+    const stats = calculateHabitDetailedStats(habit, logs, 2026, 11, refDate);
+
+    expect(stats.activeDaysFormatted).toBe('Mon, Wed, Fri');
+    expect(stats.monthlyCalendarDays.length).toBe(30); // November has 30 days
+    expect(stats.totalCompletionsAllTime).toBe(3);
+    // In that first week, 3 scheduled, 3 completed => target 3 achieved!
+    expect(stats.isTargetAchievedThisWeek).toBe(true);
+  });
+
+  it('calculates habit overview statistics across multiple habits', () => {
+    const refDate = new Date(2026, 10, 8);
+    const overview = calculateHabitOverviewStats([habit], logs, refDate);
+
+    expect(overview.totalActiveHabits).toBe(1);
+    expect(overview.habitsMeetingTargetCount).toBe(1);
+    expect(overview.habitsWithProgress).toHaveLength(1);
+    expect(overview.habitsWithProgress[0].meetsFrequencyTarget).toBe(true);
+  });
+});
+
+describe('Month Period Calculations', () => {
+  it('computes correct start, end, and navigation for month boundaries', () => {
+    const nov = getMonthPeriod(2026, 11);
+    expect(nov.monthStartDate).toBe('2026-11-01');
+    expect(nov.monthEndDate).toBe('2026-11-30');
+    expect(nov.prevMonth).toBe(10);
+    expect(nov.prevYear).toBe(2026);
+    expect(nov.nextMonth).toBe(12);
+    expect(nov.nextYear).toBe(2026);
+
+    const jan = getMonthPeriod(2026, 1);
+    expect(jan.prevMonth).toBe(12);
+    expect(jan.prevYear).toBe(2025);
+
+    const dec = getMonthPeriod(2026, 12);
+    expect(dec.nextMonth).toBe(1);
+    expect(dec.nextYear).toBe(2027);
   });
 });
