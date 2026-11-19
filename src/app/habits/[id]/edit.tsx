@@ -7,16 +7,20 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Switch,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Bell } from 'lucide-react-native';
 import { useApp } from '@/context/AppContext';
-import { colors, spacing, typography } from '@/theme/tokens';
+import { colors, radius, spacing, typography } from '@/theme/tokens';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
 import { Chip } from '@/components/common/Chip';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
+import * as notificationService from '@/services/notificationService';
 
 const FREQUENCIES = [1, 2, 3, 4, 5, 6, 7];
 
@@ -30,6 +34,8 @@ export default function EditHabitScreen() {
 
   const [title, setTitle] = useState(habit?.title || '');
   const [frequency, setFrequency] = useState(habit?.frequency || 7);
+  const [reminderTime, setReminderTime] = useState(habit?.reminder_time || '08:00');
+  const [enableReminder, setEnableReminder] = useState(Boolean(habit?.reminder_time));
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -46,6 +52,21 @@ export default function EditHabitScreen() {
     );
   }
 
+  const handleReminderToggle = async (value: boolean) => {
+    if (value) {
+      const granted = await notificationService.requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(
+          'Notifications Needed',
+          'Please allow notifications in device settings to receive habit prompts.'
+        );
+        setEnableReminder(false);
+        return;
+      }
+    }
+    setEnableReminder(value);
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       setError('Please provide a habit name.');
@@ -54,9 +75,37 @@ export default function EditHabitScreen() {
     setError(null);
     setIsSaving(true);
     try {
+      // Cancel previous notifications if any
+      if (habit.reminder_notification_ids) {
+        try {
+          const oldIds = JSON.parse(habit.reminder_notification_ids);
+          if (Array.isArray(oldIds)) {
+            await notificationService.cancelMultipleNotifications(oldIds);
+          }
+        } catch {}
+      }
+
+      let nextNotificationIds: string[] = [];
+      let activeDays = [0, 1, 2, 3, 4, 5, 6];
+      try {
+        activeDays = JSON.parse(habit.active_days);
+      } catch {}
+
+      if (enableReminder) {
+        nextNotificationIds = await notificationService.scheduleHabitReminders(
+          habit.id,
+          title.trim(),
+          activeDays,
+          reminderTime.trim() || '08:00'
+        );
+      }
+
       await updateHabit(habit.id, {
         title: title.trim(),
         frequency,
+        reminder_time: enableReminder ? reminderTime.trim() || '08:00' : null,
+        reminder_notification_ids:
+          nextNotificationIds.length > 0 ? JSON.stringify(nextNotificationIds) : null,
       });
       router.back();
     } catch (e) {
@@ -100,6 +149,37 @@ export default function EditHabitScreen() {
             />
           ))}
         </View>
+
+        {/* Habit Reminder */}
+        <View style={styles.reminderCard}>
+          <View style={styles.reminderInfo}>
+            <View style={styles.reminderIconWrapper}>
+              <Bell size={18} color={colors.forest} />
+            </View>
+            <View style={styles.reminderTextContainer}>
+              <Text style={styles.reminderTitle}>Habit Reminder</Text>
+              <Text style={styles.reminderSubtitle}>
+                Notify on active days
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={enableReminder}
+            onValueChange={handleReminderToggle}
+            trackColor={{ false: colors.line, true: colors.paleSage }}
+            thumbColor={enableReminder ? colors.forest : '#FFFFFF'}
+          />
+        </View>
+
+        {enableReminder ? (
+          <Input
+            label="Reminder Time (HH:mm)"
+            value={reminderTime}
+            onChangeText={setReminderTime}
+            placeholder="08:00"
+            helperText="Format: HH:mm (e.g. 07:30)"
+          />
+        ) : null}
 
         <View style={styles.actionRow}>
           <Button
@@ -157,6 +237,45 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.xs,
     marginBottom: spacing.base,
+  },
+  reminderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.base,
+  },
+  reminderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.sm,
+    gap: spacing.sm,
+  },
+  reminderIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paleSage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reminderTextContainer: {
+    flex: 1,
+  },
+  reminderTitle: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.charcoal,
+  },
+  reminderSubtitle: {
+    ...typography.caption,
+    color: colors.muted,
+    marginTop: 2,
   },
   actionRow: {
     flexDirection: 'row',

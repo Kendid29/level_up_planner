@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { User, Bell, Shield, Info, Trash2 } from 'lucide-react-native';
+import { User, Bell, Shield, Info, Trash2, ChevronRight } from 'lucide-react-native';
 import { useApp } from '@/context/AppContext';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
@@ -117,18 +117,25 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
-        {/* Notifications (Honest placeholder) */}
+        {/* Reminders & Notifications */}
         <Card style={styles.card}>
-          <View style={styles.rowTitle}>
-            <Bell size={18} color={colors.charcoal} strokeWidth={2} />
-            <Text style={[styles.cardTitle, { marginLeft: spacing.xs }]}>
-              Local Notifications
-            </Text>
-          </View>
-          <Text style={styles.cardDescription}>
-            Scheduled task alarms and morning reminders are in development for the next update.
-          </Text>
-          <Chip label="Coming soon" />
+          <Pressable
+            onPress={() => router.push('/settings/reminders' as any)}
+            style={({ pressed }) => [styles.navRow, pressed && { opacity: 0.7 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Configure Reminders and Notifications"
+          >
+            <View style={styles.rowTitle}>
+              <Bell size={18} color={colors.forest} strokeWidth={2} />
+              <View style={{ marginLeft: spacing.sm, flex: 1 }}>
+                <Text style={styles.cardTitle}>Reminders & Notifications</Text>
+                <Text style={styles.cardDescription}>
+                  Configure daily planning alerts, weekly reviews, and task alarms.
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={colors.muted} />
+          </Pressable>
         </Card>
 
         {/* Privacy & Data Management */}
@@ -200,6 +207,11 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: spacing.base,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   profileHeader: {
     flexDirection: 'row',
