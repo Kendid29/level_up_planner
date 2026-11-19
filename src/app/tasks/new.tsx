@@ -7,17 +7,21 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Switch,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Bell } from 'lucide-react-native';
 import { useApp } from '../../context/AppContext';
 import { PriorityLevel } from '../../types/models';
-import { colors, spacing, typography } from '../../theme/tokens';
+import { colors, radius, spacing, typography } from '../../theme/tokens';
 import { ScreenHeader } from '../../components/common/ScreenHeader';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { Chip } from '../../components/common/Chip';
 import { formatLocalDate } from '../../domain/dates';
+import * as notificationService from '../../services/notificationService';
 
 const CATEGORIES = [
   'Personal Growth',
@@ -40,6 +44,8 @@ export default function NewTaskScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState(params.dueDate || formatLocalDate(new Date()));
+  const [dueTime, setDueTime] = useState('');
+  const [enableReminder, setEnableReminder] = useState(false);
   const [priority, setPriority] = useState<PriorityLevel>('medium');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(
@@ -54,6 +60,21 @@ export default function NewTaskScreen() {
     ? milestones.filter((m) => m.goal_id === selectedGoalId)
     : [];
 
+  const handleReminderToggle = async (value: boolean) => {
+    if (value) {
+      const granted = await notificationService.requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(
+          'Notifications Not Enabled',
+          'To receive reminders, please allow notifications for Level Up Planner in your device settings.'
+        );
+        setEnableReminder(false);
+        return;
+      }
+    }
+    setEnableReminder(value);
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       setError('Please provide a task title.');
@@ -62,10 +83,26 @@ export default function NewTaskScreen() {
     setError(null);
     setIsSaving(true);
     try {
+      const trimmedDate = dueDate.trim() || null;
+      const trimmedTime = dueTime.trim() || null;
+
+      let notificationId: string | null = null;
+      if (enableReminder && trimmedDate) {
+        notificationId = await notificationService.scheduleTaskReminder(
+          'temp_' + Date.now(),
+          title.trim(),
+          trimmedDate,
+          trimmedTime
+        );
+      }
+
       await createTask({
         title: title.trim(),
         description: description.trim() || null,
-        due_at: dueDate.trim() || null,
+        due_at: trimmedDate,
+        due_time: trimmedTime,
+        reminder_at: enableReminder && trimmedDate ? `${trimmedDate}T${trimmedTime || '09:00'}:00` : null,
+        notification_id: notificationId,
         priority,
         status: 'todo',
         category,
@@ -123,6 +160,34 @@ export default function NewTaskScreen() {
           onChangeText={setDueDate}
           helperText="Format: YYYY-MM-DD"
         />
+
+        <Input
+          label="Due Time (Optional)"
+          placeholder="e.g. 09:30 or 14:00"
+          value={dueTime}
+          onChangeText={setDueTime}
+          helperText="Format: HH:mm (24-hour time)"
+        />
+
+        <View style={styles.reminderCard}>
+          <View style={styles.reminderInfo}>
+            <View style={styles.reminderIconWrapper}>
+              <Bell size={18} color={colors.forest} />
+            </View>
+            <View style={styles.reminderTextContainer}>
+              <Text style={styles.reminderTitle}>Task Reminder</Text>
+              <Text style={styles.reminderSubtitle}>
+                Get notified at the scheduled date and time
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={enableReminder}
+            onValueChange={handleReminderToggle}
+            trackColor={{ false: colors.line, true: colors.paleSage }}
+            thumbColor={enableReminder ? colors.forest : '#FFFFFF'}
+          />
+        </View>
 
         {/* Priority */}
         <Text style={styles.sectionLabel}>Priority</Text>
@@ -229,6 +294,45 @@ const styles = StyleSheet.create({
   multilineInput: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  reminderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.base,
+  },
+  reminderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.sm,
+    gap: spacing.sm,
+  },
+  reminderIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paleSage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reminderTextContainer: {
+    flex: 1,
+  },
+  reminderTitle: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.charcoal,
+  },
+  reminderSubtitle: {
+    ...typography.caption,
+    color: colors.muted,
+    marginTop: 2,
   },
   sectionLabel: {
     ...typography.bodySmall,

@@ -22,6 +22,7 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   accessibilityLabel?: string;
 }
 
@@ -34,6 +35,7 @@ export function Button({
   style,
   textStyle,
   leftIcon,
+  rightIcon,
   accessibilityLabel,
 }: ButtonProps) {
   const getContainerStyle = (pressed: boolean) => {
@@ -87,6 +89,7 @@ export function Button({
         <>
           {leftIcon}
           <Text style={getTextStyle()}>{title}</Text>
+          {rightIcon}
         </>
       )}
     </Pressable>

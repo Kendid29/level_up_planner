@@ -7,17 +7,22 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Switch,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Bell, Calendar, Clock } from 'lucide-react-native';
 import { useApp } from '@/context/AppContext';
 import { PriorityLevel } from '@/types/models';
-import { colors, spacing, typography } from '@/theme/tokens';
+import { colors, radius, spacing, typography } from '@/theme/tokens';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
 import { Chip } from '@/components/common/Chip';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
+import { formatLocalDate } from '@/domain/dates';
+import * as notificationService from '@/services/notificationService';
 
 const CATEGORIES = [
   'Personal Growth',
@@ -42,6 +47,8 @@ export default function EditTaskScreen() {
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [dueDate, setDueDate] = useState(task?.due_at || '');
+  const [dueTime, setDueTime] = useState(task?.due_time || '');
+  const [enableReminder, setEnableReminder] = useState(Boolean(task?.notification_id || task?.reminder_at));
   const [priority, setPriority] = useState<PriorityLevel>(task?.priority || 'medium');
   const [category, setCategory] = useState(task?.category || CATEGORIES[0]);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(
@@ -70,6 +77,27 @@ export default function EditTaskScreen() {
     ? milestones.filter((m) => m.goal_id === selectedGoalId)
     : [];
 
+  const handleReminderToggle = async (value: boolean) => {
+    if (value) {
+      const granted = await notificationService.requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(
+          'Notifications Not Enabled',
+          'To receive reminders, please allow notifications for Level Up Planner in your device settings.'
+        );
+        setEnableReminder(false);
+        return;
+      }
+    }
+    setEnableReminder(value);
+  };
+
+  const handleQuickReschedule = (daysToAdd: number) => {
+    const target = new Date();
+    target.setDate(target.getDate() + daysToAdd);
+    setDueDate(formatLocalDate(target));
+  };
+
   const handleSave = async () => {
     if (!title.trim()) {
       setError('Please provide a task title.');
@@ -78,10 +106,33 @@ export default function EditTaskScreen() {
     setError(null);
     setIsSaving(true);
     try {
+      const trimmedDate = dueDate.trim() || null;
+      const trimmedTime = dueTime.trim() || null;
+
+      let notificationId: string | null = task.notification_id || null;
+
+      if (!enableReminder && task.notification_id) {
+        await notificationService.cancelNotification(task.notification_id);
+        notificationId = null;
+      } else if (enableReminder && trimmedDate) {
+        if (task.notification_id) {
+          await notificationService.cancelNotification(task.notification_id);
+        }
+        notificationId = await notificationService.scheduleTaskReminder(
+          task.id,
+          title.trim(),
+          trimmedDate,
+          trimmedTime
+        );
+      }
+
       await updateTask(task.id, {
         title: title.trim(),
         description: description.trim() || null,
-        due_at: dueDate.trim() || null,
+        due_at: trimmedDate,
+        due_time: trimmedTime,
+        reminder_at: enableReminder && trimmedDate ? `${trimmedDate}T${trimmedTime || '09:00'}:00` : null,
+        notification_id: notificationId,
         priority,
         category,
         goal_id: selectedGoalId,
@@ -132,7 +183,47 @@ export default function EditTaskScreen() {
           placeholder="YYYY-MM-DD"
           value={dueDate}
           onChangeText={setDueDate}
+          helperText="Format: YYYY-MM-DD"
         />
+
+        {/* Quick Reschedule */}
+        <View style={styles.quickRescheduleContainer}>
+          <Text style={styles.quickRescheduleLabel}>Quick Reschedule:</Text>
+          <View style={styles.quickRescheduleRow}>
+            <Chip label="Today" onPress={() => handleQuickReschedule(0)} />
+            <Chip label="Tomorrow" onPress={() => handleQuickReschedule(1)} />
+            <Chip label="+3 Days" onPress={() => handleQuickReschedule(3)} />
+            <Chip label="Next Week" onPress={() => handleQuickReschedule(7)} />
+          </View>
+        </View>
+
+        <Input
+          label="Due Time (Optional)"
+          placeholder="e.g. 09:30 or 14:00"
+          value={dueTime}
+          onChangeText={setDueTime}
+          helperText="Format: HH:mm (24-hour time)"
+        />
+
+        <View style={styles.reminderCard}>
+          <View style={styles.reminderInfo}>
+            <View style={styles.reminderIconWrapper}>
+              <Bell size={18} color={colors.forest} />
+            </View>
+            <View style={styles.reminderTextContainer}>
+              <Text style={styles.reminderTitle}>Task Reminder</Text>
+              <Text style={styles.reminderSubtitle}>
+                Notify at the scheduled date and time
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={enableReminder}
+            onValueChange={handleReminderToggle}
+            trackColor={{ false: colors.line, true: colors.paleSage }}
+            thumbColor={enableReminder ? colors.forest : '#FFFFFF'}
+          />
+        </View>
 
         {/* Priority */}
         <Text style={styles.sectionLabel}>Priority</Text>
@@ -254,6 +345,59 @@ const styles = StyleSheet.create({
   multilineInput: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  quickRescheduleContainer: {
+    marginBottom: spacing.base,
+    marginTop: -spacing.xs,
+  },
+  quickRescheduleLabel: {
+    ...typography.caption,
+    color: colors.muted,
+    marginBottom: spacing.xs,
+  },
+  quickRescheduleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  reminderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.base,
+  },
+  reminderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.sm,
+    gap: spacing.sm,
+  },
+  reminderIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.paleSage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reminderTextContainer: {
+    flex: 1,
+  },
+  reminderTitle: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.charcoal,
+  },
+  reminderSubtitle: {
+    ...typography.caption,
+    color: colors.muted,
+    marginTop: 2,
   },
   sectionLabel: {
     ...typography.bodySmall,

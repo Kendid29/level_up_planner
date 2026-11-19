@@ -1,12 +1,12 @@
 // Level Up Planner: Task Item Component
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Target, Trash2 } from 'lucide-react-native';
+import { Target, Trash2, Bell, Clock } from 'lucide-react-native';
 import { Task } from '../../types/models';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 import { Checkbox } from '../common/Checkbox';
 import { Chip } from '../common/Chip';
-import { formatDisplayDate } from '../../domain/dates';
+import { formatDisplayDate, formatTimeDisplay, isTaskOverdue } from '../../domain/dates';
 
 interface TaskItemProps {
   task: Task;
@@ -24,6 +24,8 @@ export function TaskItem({
   goalTitle,
 }: TaskItemProps) {
   const isCompleted = task.status === 'completed';
+  const isOverdue = !isCompleted && isTaskOverdue(task.due_at, task.due_time);
+  const hasReminder = Boolean(task.notification_id || task.reminder_at);
 
   return (
     <Pressable
@@ -32,6 +34,7 @@ export function TaskItem({
         styles.container,
         pressed && styles.pressed,
         isCompleted && styles.containerCompleted,
+        isOverdue && styles.containerOverdue,
       ]}
       accessibilityRole="button"
       accessibilityLabel={`Task: ${task.title}`}
@@ -58,9 +61,25 @@ export function TaskItem({
             ) : null}
 
             {task.due_at ? (
-              <Text style={styles.dateText}>
-                {formatDisplayDate(task.due_at)}
-              </Text>
+              <View style={styles.timeTag}>
+                <Clock size={11} color={isOverdue ? '#8A4A36' : colors.forest} />
+                <Text style={[styles.dateText, isOverdue && styles.dateTextOverdue]}>
+                  {formatDisplayDate(task.due_at)}
+                  {task.due_time ? ` ${formatTimeDisplay(task.due_time)}` : ''}
+                </Text>
+              </View>
+            ) : null}
+
+            {hasReminder ? (
+              <View style={styles.reminderBadge}>
+                <Bell size={11} color={colors.forest} />
+              </View>
+            ) : null}
+
+            {isOverdue ? (
+              <View style={styles.overdueBadge}>
+                <Text style={styles.overdueText}>Overdue</Text>
+              </View>
             ) : null}
 
             {task.priority !== 'low' ? (
@@ -115,6 +134,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAF8F4',
     borderColor: colors.line,
   },
+  containerOverdue: {
+    borderColor: '#E8D2C5',
+    backgroundColor: '#FFFDFB',
+  },
   pressed: {
     opacity: 0.9,
   },
@@ -154,10 +177,35 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.muted,
   },
+  timeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   dateText: {
     ...typography.caption,
     color: colors.forest,
     fontWeight: '500',
+  },
+  dateTextOverdue: {
+    color: '#8A4A36',
+  },
+  reminderBadge: {
+    backgroundColor: colors.paleSage,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  overdueBadge: {
+    backgroundColor: '#FDEEE9',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radius.sm,
+  },
+  overdueText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#8A4A36',
   },
   priorityChip: {
     paddingHorizontal: 6,

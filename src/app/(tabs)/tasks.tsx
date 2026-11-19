@@ -37,6 +37,7 @@ export default function TasksScreen() {
       today: filterTasks(tasks, 'today', todayStr, weekStart).length,
       upcoming: filterTasks(tasks, 'upcoming', todayStr, weekStart).length,
       this_week: filterTasks(tasks, 'this_week', todayStr, weekStart).length,
+      overdue: filterTasks(tasks, 'overdue', todayStr, weekStart).length,
       completed: filterTasks(tasks, 'completed', todayStr, weekStart).length,
     };
   }, [tasks, todayStr, weekStart]);
@@ -52,6 +53,7 @@ export default function TasksScreen() {
     today: 'today',
     upcoming: 'upcoming',
     this_week: 'this week',
+    overdue: 'overdue',
     completed: 'completed',
   };
 
@@ -99,6 +101,8 @@ export default function TasksScreen() {
             description={
               selectedFilter === 'completed'
                 ? 'Completed tasks will appear here once you check them off.'
+                : selectedFilter === 'overdue'
+                ? 'All caught up. You have no pending tasks past their due time.'
                 : 'Take a moment to add one clear action step.'
             }
             actionTitle={selectedFilter !== 'completed' ? 'Add Task' : undefined}
