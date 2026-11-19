@@ -31,8 +31,8 @@ export async function createGoal(
   const now = new Date().toISOString();
 
   await db.runAsync(
-    `INSERT INTO goals (id, user_id, title, description, horizon, category, start_date, target_date, priority, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO goals (id, user_id, title, description, horizon, category, start_date, target_date, priority, status, completed_at, completion_note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       goal.user_id,
@@ -44,6 +44,8 @@ export async function createGoal(
       goal.target_date || null,
       goal.priority,
       goal.status,
+      goal.completed_at || null,
+      goal.completion_note || null,
       now,
       now,
     ]
@@ -76,6 +78,8 @@ export async function updateGoal(id: string, updates: Partial<Goal>): Promise<Go
        target_date = ?,
        priority = ?,
        status = ?,
+       completed_at = ?,
+       completion_note = ?,
        updated_at = ?
      WHERE id = ?`,
     [
@@ -87,12 +91,30 @@ export async function updateGoal(id: string, updates: Partial<Goal>): Promise<Go
       updated.target_date || null,
       updated.priority,
       updated.status,
+      updated.completed_at || null,
+      updated.completion_note || null,
       now,
       id,
     ]
   );
 
   return (await getGoalById(id))!;
+}
+
+export async function completeGoal(id: string, completionNote?: string): Promise<Goal> {
+  const now = new Date().toISOString();
+  return await updateGoal(id, {
+    status: 'completed',
+    completed_at: now,
+    completion_note: completionNote ? completionNote.trim() : null,
+  });
+}
+
+export async function reopenGoal(id: string): Promise<Goal> {
+  return await updateGoal(id, {
+    status: 'active',
+    completed_at: null,
+  });
 }
 
 export async function deleteGoal(id: string): Promise<void> {

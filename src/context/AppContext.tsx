@@ -16,6 +16,10 @@ import {
   WeeklyReviewWithPriorities,
   ReminderPreference,
   ReminderType,
+  Category,
+  MonthlyProgressSummary,
+  HabitDetailedStats,
+  HabitOverviewStats,
 } from '../types/models';
 import { getDatabase } from '../database/db';
 import { DEFAULT_USER_ID } from '../database/schema';
@@ -28,8 +32,15 @@ import * as journalRepo from '../repositories/journalRepository';
 import * as profileRepo from '../repositories/profileRepository';
 import * as weeklyReviewRepo from '../repositories/weeklyReviewRepository';
 import * as reminderRepo from '../repositories/reminderRepository';
+import * as categoryRepo from '../repositories/categoryRepository';
 import * as notificationService from '../services/notificationService';
-import { aggregateGoal, aggregateHabit } from '../domain/planning';
+import {
+  aggregateGoal,
+  aggregateHabit,
+  calculateMonthlyStats,
+  calculateHabitDetailedStats,
+  calculateHabitOverviewStats,
+} from '../domain/planning';
 import { formatLocalDate, getGreeting, formatHeaderDate, isTaskOverdue, getWeekPeriod } from '../domain/dates';
 
 interface AppContextValue {
@@ -44,10 +55,13 @@ interface AppContextValue {
   journalEntries: JournalEntry[];
   weeklyReviews: WeeklyReview[];
   reminderPreferences: ReminderPreference[];
+  categories: Category[];
 
   // Aggregated Views
   goalsWithProgress: GoalWithProgress[];
+  completedGoals: GoalWithProgress[];
   habitsWithProgress: HabitWithWeeklyProgress[];
+  habitOverviewStats: HabitOverviewStats;
   dashboardSummary: DashboardSummary;
 
   // Actions
@@ -56,6 +70,8 @@ interface AppContextValue {
   // Goals & Milestones
   createGoal: (goal: Omit<Goal, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<Goal>;
   updateGoal: (id: string, updates: Partial<Goal>) => Promise<Goal>;
+  completeGoal: (id: string, completionNote?: string) => Promise<Goal>;
+  reopenGoal: (id: string) => Promise<Goal>;
   deleteGoal: (id: string) => Promise<void>;
   archiveGoal: (id: string) => Promise<void>;
 
@@ -101,6 +117,16 @@ interface AppContextValue {
     updates: Partial<Omit<ReminderPreference, 'id' | 'user_id' | 'reminder_type' | 'updated_at'>>
   ) => Promise<ReminderPreference>;
 
+  // Phase 2: Custom Categories
+  createCategory: (category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<Category>;
+  updateCategory: (id: string, updates: Partial<Category>) => Promise<Category>;
+  deleteCategory: (id: string, reassignToCategoryName?: string | null) => Promise<void>;
+  getCategoryUsageCounts: (categoryName: string) => Promise<{ tasksCount: number; goalsCount: number; habitsCount: number; total: number }>;
+
+  // Phase 2: Insights & Stats
+  getMonthlySummary: (year: number, month: number) => MonthlyProgressSummary;
+  getHabitDetailedStats: (habitId: string, year?: number, month?: number) => HabitDetailedStats | null;
+
   // Profile & Settings
   updateProfile: (updates: Partial<Profile>) => Promise<Profile>;
   resetAllData: () => Promise<void>;
@@ -120,6 +146,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [weeklyReviews, setWeeklyReviews] = useState<WeeklyReview[]>([]);
   const [reminderPreferences, setReminderPreferences] = useState<ReminderPreference[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -134,6 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const j = await journalRepo.getJournalEntries(DEFAULT_USER_ID);
       const wr = await weeklyReviewRepo.getWeeklyReviews(DEFAULT_USER_ID);
       const rp = await reminderRepo.getReminderPreferences(DEFAULT_USER_ID);
+      const cats = await categoryRepo.getCategories(DEFAULT_USER_ID, true);
 
       setProfile(p);
       setGoals(g);
@@ -145,6 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setJournalEntries(j);
       setWeeklyReviews(wr);
       setReminderPreferences(rp);
+      setCategories(cats);
     } catch (error) {
       console.error('Failed to load local data:', error);
     } finally {
@@ -163,11 +192,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .map((g) => aggregateGoal(g, milestones, tasks));
   }, [goals, milestones, tasks]);
 
+  // Completed goals (Phase 2 Achievement History)
+  const completedGoals = useMemo(() => {
+    return goals
+      .filter((g) => g.status === 'completed')
+      .map((g) => aggregateGoal(g, milestones, tasks));
+  }, [goals, milestones, tasks]);
+
   // Aggregated habits
   const habitsWithProgress = useMemo(() => {
     const activeHabits = habits.filter((h) => h.archived_at === null);
     const weekStart = profile?.week_start ?? 1;
     return activeHabits.map((h) => aggregateHabit(h, habitLogs, new Date(), weekStart));
+  }, [habits, habitLogs, profile?.week_start]);
+
+  // Habit overview stats across all active habits (Phase 2)
+  const habitOverviewStats = useMemo(() => {
+    return calculateHabitOverviewStats(habits, habitLogs, new Date(), profile?.week_start ?? 1);
   }, [habits, habitLogs, profile?.week_start]);
 
   // Dashboard summary computed from real SQLite application data
@@ -234,6 +275,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const updated = await goalRepo.updateGoal(id, updates);
       await loadData();
       return updated;
+    },
+    [loadData]
+  );
+
+  const completeGoal = useCallback(
+    async (id: string, completionNote?: string) => {
+      const completed = await goalRepo.completeGoal(id, completionNote);
+      await loadData();
+      return completed;
+    },
+    [loadData]
+  );
+
+  const reopenGoal = useCallback(
+    async (id: string) => {
+      const reopened = await goalRepo.reopenGoal(id);
+      await loadData();
+      return reopened;
     },
     [loadData]
   );
@@ -529,6 +588,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [reminderPreferences, loadData]
   );
 
+  // Phase 2: Category actions
+  const createCategory = useCallback(
+    async (catData: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      const created = await categoryRepo.createCategory({
+        ...catData,
+        user_id: DEFAULT_USER_ID,
+      });
+      await loadData();
+      return created;
+    },
+    [loadData]
+  );
+
+  const updateCategory = useCallback(
+    async (id: string, updates: Partial<Category>) => {
+      const updated = await categoryRepo.updateCategory(id, updates);
+      await loadData();
+      return updated;
+    },
+    [loadData]
+  );
+
+  const deleteCategory = useCallback(
+    async (id: string, reassignToCategoryName?: string | null) => {
+      await categoryRepo.deleteCategory(id, reassignToCategoryName);
+      await loadData();
+    },
+    [loadData]
+  );
+
+  const getCategoryUsageCounts = useCallback(async (categoryName: string) => {
+    return await categoryRepo.getCategoryUsageCounts(DEFAULT_USER_ID, categoryName);
+  }, []);
+
+  // Phase 2: Insights calculations
+  const getMonthlySummary = useCallback(
+    (year: number, month: number) => {
+      return calculateMonthlyStats(year, month, tasks, goals, milestones, habits, habitLogs);
+    },
+    [tasks, goals, milestones, habits, habitLogs]
+  );
+
+  const getHabitDetailedStats = useCallback(
+    (habitId: string, year?: number, month?: number) => {
+      const h = habits.find((item) => item.id === habitId);
+      if (!h) return null;
+      const targetYear = year ?? new Date().getFullYear();
+      const targetMonth = month ?? new Date().getMonth() + 1;
+      return calculateHabitDetailedStats(
+        h,
+        habitLogs,
+        targetYear,
+        targetMonth,
+        new Date(),
+        profile?.week_start ?? 1
+      );
+    },
+    [habits, habitLogs, profile?.week_start]
+  );
+
   // Profile actions
   const updateProfile = useCallback(
     async (updates: Partial<Profile>) => {
@@ -556,12 +675,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     journalEntries,
     weeklyReviews,
     reminderPreferences,
+    categories,
     goalsWithProgress,
+    completedGoals,
     habitsWithProgress,
+    habitOverviewStats,
     dashboardSummary,
     refreshData: loadData,
     createGoal,
     updateGoal,
+    completeGoal,
+    reopenGoal,
     deleteGoal,
     archiveGoal,
     createMilestone,
@@ -587,6 +711,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteWeeklyReview,
     getWeeklyReviewById,
     updateReminderPreference,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    getCategoryUsageCounts,
+    getMonthlySummary,
+    getHabitDetailedStats,
     updateProfile,
     resetAllData,
   }), [
@@ -601,12 +731,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     journalEntries,
     weeklyReviews,
     reminderPreferences,
+    categories,
     goalsWithProgress,
+    completedGoals,
     habitsWithProgress,
+    habitOverviewStats,
     dashboardSummary,
     loadData,
     createGoal,
     updateGoal,
+    completeGoal,
+    reopenGoal,
     deleteGoal,
     archiveGoal,
     createMilestone,
@@ -632,6 +767,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteWeeklyReview,
     getWeeklyReviewById,
     updateReminderPreference,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    getCategoryUsageCounts,
+    getMonthlySummary,
+    getHabitDetailedStats,
     updateProfile,
     resetAllData,
   ]);

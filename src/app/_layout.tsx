@@ -95,6 +95,26 @@ export default function RootLayout() {
             name="settings/reminders"
             options={{ headerShown: false, presentation: 'card' }}
           />
+          <Stack.Screen
+            name="insights/monthly"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="habits/[id]/stats"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="settings/categories"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="goals/achievements"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
+          <Stack.Screen
+            name="goals/achievement-[id]"
+            options={{ headerShown: false, presentation: 'card' }}
+          />
         </Stack>
       </AppProvider>
     </SafeAreaProvider>
