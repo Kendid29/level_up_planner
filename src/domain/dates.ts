@@ -105,3 +105,105 @@ export function getDayAbbr(dateString: string): string {
   const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   return weekdays[d.getDay()];
 }
+
+export function getCurrentTimeString(now: Date = new Date()): string {
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+export function isTaskOverdue(
+  dueDate: string | null | undefined,
+  dueTime: string | null | undefined,
+  refDate?: string,
+  refTime?: string
+): boolean {
+  if (!dueDate) return false;
+  const today = refDate || formatLocalDate(new Date());
+
+  if (dueDate < today) {
+    return true;
+  }
+
+  if (dueDate === today) {
+    if (dueTime) {
+      const currentTime = refTime || getCurrentTimeString(new Date());
+      return currentTime > dueTime;
+    }
+    // If no due time specified, task is valid for the whole day, so not overdue until next day
+    return false;
+  }
+
+  return false;
+}
+
+export interface WeekPeriod {
+  weekStartDate: string; // YYYY-MM-DD
+  weekEndDate: string; // YYYY-MM-DD
+  periodKey: string; // e.g. "2026-W47"
+  label: string; // e.g. "Nov 17 - Nov 23"
+}
+
+export function getWeekPeriod(referenceDate: Date = new Date(), weekStart: number = 1): WeekPeriod {
+  const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
+  const currentDayOfWeek = d.getDay(); // 0 is Sunday
+  const diffToStart = (currentDayOfWeek - weekStart + 7) % 7;
+
+  const startOfWeek = new Date(d);
+  startOfWeek.setDate(d.getDate() - diffToStart);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+  const startStr = formatLocalDate(startOfWeek);
+  const endStr = formatLocalDate(endOfWeek);
+
+  // Calculate ISO week-like number for period key
+  // Target Thursday of the week to get reliable year & week number
+  const thursday = new Date(startOfWeek);
+  thursday.setDate(startOfWeek.getDate() + 3);
+  const year = thursday.getFullYear();
+  const firstJan = new Date(year, 0, 1);
+  const dayOfYear = Math.floor((thursday.getTime() - firstJan.getTime()) / 86400000) + 1;
+  const weekNumber = Math.ceil(dayOfYear / 7);
+  const periodKey = `${year}-W${String(weekNumber).padStart(2, '0')}`;
+
+  const startLabel = startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const endLabel = endOfWeek.toLocaleDateString('en-US', {
+    month: startOfWeek.getMonth() === endOfWeek.getMonth() ? undefined : 'short',
+    day: 'numeric',
+  });
+  const label = `${startLabel} – ${endLabel}`;
+
+  return {
+    weekStartDate: startStr,
+    weekEndDate: endStr,
+    periodKey,
+    label,
+  };
+}
+
+export function getPreviousWeekPeriod(referenceDate: Date = new Date(), weekStart: number = 1): WeekPeriod {
+  const prevDate = new Date(referenceDate);
+  prevDate.setDate(prevDate.getDate() - 7);
+  return getWeekPeriod(prevDate, weekStart);
+}
+
+export function getNextWeekPeriod(referenceDate: Date = new Date(), weekStart: number = 1): WeekPeriod {
+  const nextDate = new Date(referenceDate);
+  nextDate.setDate(nextDate.getDate() + 7);
+  return getWeekPeriod(nextDate, weekStart);
+}
+
+export function formatTimeDisplay(timeString: string | null | undefined): string {
+  if (!timeString) return '';
+  const [hoursStr, minutesStr] = timeString.split(':');
+  const hours = Number(hoursStr);
+  const minutes = Number(minutesStr);
+  if (isNaN(hours) || isNaN(minutes)) return timeString;
+
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 === 0 ? 12 : hours % 12;
+  const displayMinutes = String(minutes).padStart(2, '0');
+  return `${displayHours}:${displayMinutes} ${ampm}`;
+}

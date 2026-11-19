@@ -5,6 +5,7 @@ import {
   filterTasks,
   aggregateGoal,
   aggregateHabit,
+  calculateWeeklyStats,
 } from '../planning';
 import {
   formatLocalDate,
@@ -13,6 +14,8 @@ import {
   isDateInThisWeek,
   isDateToday,
   isDateUpcoming,
+  isTaskOverdue,
+  getWeekPeriod,
 } from '../dates';
 import { Milestone, Task, Goal, Habit, HabitLog } from '../../types/models';
 
@@ -203,6 +206,169 @@ describe('Task Filtering', () => {
     const result = filterTasks(sampleTasks, 'completed', referenceDate);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('t3');
+  });
+
+  it('filters overdue tasks correctly', () => {
+    const tasksWithPast: Task[] = [
+      ...sampleTasks,
+      {
+        id: 't_past',
+        user_id: 'u1',
+        goal_id: null,
+        milestone_id: null,
+        title: 'Yesterday task pending',
+        description: null,
+        due_at: '2026-11-16',
+        due_time: null,
+        reminder_at: null,
+        notification_id: null,
+        priority: 'high',
+        status: 'todo',
+        category: 'Work',
+        completed_at: null,
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+    const result = filterTasks(tasksWithPast, 'overdue', referenceDate);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('t_past');
+  });
+});
+
+describe('Overdue and Time Logic', () => {
+  it('identifies past dates as overdue', () => {
+    expect(isTaskOverdue('2026-11-16', null, '2026-11-17', '10:00')).toBe(true);
+  });
+
+  it('identifies future dates as not overdue', () => {
+    expect(isTaskOverdue('2026-11-18', null, '2026-11-17', '10:00')).toBe(false);
+  });
+
+  it('handles same-day tasks with due time', () => {
+    expect(isTaskOverdue('2026-11-17', '09:00', '2026-11-17', '10:00')).toBe(true);
+    expect(isTaskOverdue('2026-11-17', '11:00', '2026-11-17', '10:00')).toBe(false);
+  });
+
+  it('handles same-day tasks without due time as not overdue during the day', () => {
+    expect(isTaskOverdue('2026-11-17', null, '2026-11-17', '10:00')).toBe(false);
+  });
+});
+
+describe('Weekly Review Statistics', () => {
+  it('calculates weekly stats and completion rate accurately', () => {
+    const weekStart = '2026-11-16';
+    const weekEnd = '2026-11-22';
+
+    const tasks: Task[] = [
+      {
+        id: 't1',
+        user_id: 'u1',
+        goal_id: 'g1',
+        milestone_id: null,
+        title: 'Task 1',
+        description: null,
+        due_at: '2026-11-17',
+        due_time: null,
+        reminder_at: null,
+        notification_id: null,
+        priority: 'high',
+        status: 'completed',
+        category: 'Health',
+        completed_at: '2026-11-17T12:00:00Z',
+        created_at: '',
+        updated_at: '',
+      },
+      {
+        id: 't2',
+        user_id: 'u1',
+        goal_id: 'g1',
+        milestone_id: null,
+        title: 'Task 2',
+        description: null,
+        due_at: '2026-11-18',
+        due_time: null,
+        reminder_at: null,
+        notification_id: null,
+        priority: 'medium',
+        status: 'todo',
+        category: 'Health',
+        completed_at: null,
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+
+    const goals: Goal[] = [
+      {
+        id: 'g1',
+        user_id: 'u1',
+        title: 'Goal 1',
+        description: null,
+        horizon: 'short',
+        category: 'Health',
+        start_date: '2026-11-01',
+        target_date: '2026-12-01',
+        priority: 'high',
+        status: 'active',
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+
+    const milestones: Milestone[] = [
+      {
+        id: 'm1',
+        goal_id: 'g1',
+        title: 'Milestone 1',
+        description: null,
+        sort_order: 1,
+        target_date: '2026-11-20',
+        completed_at: '2026-11-17T15:00:00Z',
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+
+    const habits: Habit[] = [
+      {
+        id: 'h1',
+        user_id: 'u1',
+        title: 'Morning Walk',
+        frequency: 7,
+        active_days: '[0,1,2,3,4,5,6]',
+        start_date: '2026-11-01',
+        archived_at: null,
+        reminder_time: null,
+        reminder_notification_ids: null,
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+
+    const habitLogs: HabitLog[] = [
+      { id: 'hl1', habit_id: 'h1', log_date: '2026-11-16', completed: 1, created_at: '' },
+      { id: 'hl2', habit_id: 'h1', log_date: '2026-11-17', completed: 1, created_at: '' },
+    ];
+
+    const stats = calculateWeeklyStats(weekStart, weekEnd, tasks, goals, milestones, habits, habitLogs);
+
+    expect(stats.totalTasks).toBe(2);
+    expect(stats.completedTasks).toBe(1);
+    expect(stats.pendingTasks).toBe(1);
+    expect(stats.completionPercentage).toBe(50);
+    expect(stats.activeGoalsCount).toBe(1);
+    expect(stats.completedMilestonesCount).toBe(1);
+    // Habit active for 7 days in week, logged 2 days => 2/7 ≈ 29%
+    expect(stats.habitCompletionRate).toBe(29);
+  });
+
+  it('determines week period and period key', () => {
+    const d = new Date(2026, 10, 19); // Nov 19 2026 (Thursday)
+    const period = getWeekPeriod(d, 1);
+    expect(period.periodKey).toContain('2026-W');
+    expect(period.weekStartDate).toBe('2026-11-16'); // Monday
+    expect(period.weekEndDate).toBe('2026-11-22'); // Sunday
   });
 });
 

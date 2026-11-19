@@ -39,8 +39,8 @@ export async function createTask(
   const now = new Date().toISOString();
 
   await db.runAsync(
-    `INSERT INTO tasks (id, user_id, goal_id, milestone_id, title, description, due_at, priority, status, category, completed_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO tasks (id, user_id, goal_id, milestone_id, title, description, due_at, due_time, reminder_at, notification_id, priority, status, category, completed_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       task.user_id,
@@ -49,6 +49,9 @@ export async function createTask(
       task.title.trim(),
       task.description ? task.description.trim() : null,
       task.due_at || null,
+      task.due_time || null,
+      task.reminder_at || null,
+      task.notification_id || null,
       task.priority,
       task.status,
       task.category,
@@ -82,6 +85,9 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<Ta
        title = ?,
        description = ?,
        due_at = ?,
+       due_time = ?,
+       reminder_at = ?,
+       notification_id = ?,
        priority = ?,
        status = ?,
        category = ?,
@@ -94,6 +100,9 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<Ta
       updated.title.trim(),
       updated.description ? updated.description.trim() : null,
       updated.due_at || null,
+      updated.due_time || null,
+      updated.reminder_at || null,
+      updated.notification_id || null,
       updated.priority,
       updated.status,
       updated.category,

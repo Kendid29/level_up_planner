@@ -25,8 +25,8 @@ export async function createHabit(
   const now = new Date().toISOString();
 
   await db.runAsync(
-    `INSERT INTO habits (id, user_id, title, frequency, active_days, start_date, archived_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO habits (id, user_id, title, frequency, active_days, start_date, archived_at, reminder_time, reminder_notification_ids, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       habit.user_id,
@@ -35,6 +35,8 @@ export async function createHabit(
       habit.active_days,
       habit.start_date,
       habit.archived_at || null,
+      habit.reminder_time || null,
+      habit.reminder_notification_ids || null,
       now,
       now,
     ]
@@ -64,6 +66,8 @@ export async function updateHabit(id: string, updates: Partial<Habit>): Promise<
        active_days = ?,
        start_date = ?,
        archived_at = ?,
+       reminder_time = ?,
+       reminder_notification_ids = ?,
        updated_at = ?
      WHERE id = ?`,
     [
@@ -72,6 +76,8 @@ export async function updateHabit(id: string, updates: Partial<Habit>): Promise<
       updated.active_days,
       updated.start_date,
       updated.archived_at || null,
+      updated.reminder_time || null,
+      updated.reminder_notification_ids || null,
       now,
       id,
     ]
