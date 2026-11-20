@@ -9,8 +9,23 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { User, Bell, Shield, Info, Trash2, ChevronRight, TrendingUp, Tag, Database } from 'lucide-react-native';
+import {
+  User,
+  Bell,
+  Shield,
+  Info,
+  Trash2,
+  ChevronRight,
+  TrendingUp,
+  Tag,
+  Database,
+  Cloud,
+  LogOut,
+  KeyRound,
+  CheckCircle2,
+} from 'lucide-react-native';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/context/AuthContext';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 import { ScreenHeader } from '@/components/common/ScreenHeader';
 import { Card } from '@/components/common/Card';
@@ -23,12 +38,15 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile, updateProfile, resetAllData } = useApp();
+  const { user, isAuthenticated, signOut } = useAuth();
 
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
   const [weekStart, setWeekStart] = useState(profile?.week_start ?? 1);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSaveProfile = async () => {
     if (!displayName.trim()) return;
@@ -44,6 +62,16 @@ export default function ProfileScreen() {
       console.error(e);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      setShowSignOutModal(false);
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -103,6 +131,62 @@ export default function ProfileScreen() {
             onPress={handleSaveProfile}
             loading={isSaving}
           />
+        </Card>
+
+        {/* Cloud Account & Supabase Auth Section (Phase 4.3) */}
+        <Card style={styles.card}>
+          <View style={styles.rowTitle}>
+            <Cloud size={18} color={colors.forest} strokeWidth={2} />
+            <Text style={[styles.cardTitle, { marginLeft: spacing.xs }]}>
+              Cloud Account (Supabase)
+            </Text>
+          </View>
+
+          {isAuthenticated && user ? (
+            <View style={styles.authConnectedContainer}>
+              <View style={styles.badgeRow}>
+                <CheckCircle2 size={16} color={colors.forest} />
+                <Text style={styles.badgeText}>Connected</Text>
+              </View>
+              <Text style={styles.authEmail}>{user.email}</Text>
+              <Text style={styles.cardDescription}>
+                Your cloud session is active. Your planner is ready for secure cloud synchronization.
+              </Text>
+
+              <View style={styles.authButtonsRow}>
+                <Button
+                  title="Change Password"
+                  variant="secondary"
+                  leftIcon={<KeyRound size={16} color={colors.charcoal} />}
+                  onPress={() => router.push('/auth/reset-password' as any)}
+                  style={{ flex: 1, marginRight: spacing.xs }}
+                />
+                <Button
+                  title="Sign Out"
+                  variant="ghost"
+                  leftIcon={<LogOut size={16} color={colors.error} />}
+                  textStyle={{ color: colors.error }}
+                  onPress={() => setShowSignOutModal(true)}
+                  style={{ flex: 1, marginLeft: spacing.xs }}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.authOfflineContainer}>
+              <View style={styles.offlineBadgeRow}>
+                <Text style={styles.offlineBadgeText}>Offline Mode (Local Only)</Text>
+              </View>
+              <Text style={styles.cardDescription}>
+                You are using Level Up Planner completely offline on this device. Sign in or register to enable cloud backups and multi-device access.
+              </Text>
+              <Button
+                title="Sign In / Register"
+                variant="primary"
+                onPress={() => router.push('/auth/login' as any)}
+                style={{ marginTop: spacing.sm }}
+              />
+            </View>
+          )}
         </Card>
 
         {/* Theme Preference */}
@@ -220,6 +304,17 @@ export default function ProfileScreen() {
         <View style={{ height: spacing['4xl'] }} />
       </ScrollView>
 
+      {/* Sign Out Confirmation Modal */}
+      <ConfirmModal
+        visible={showSignOutModal}
+        title="Sign Out"
+        message="Are you sure you want to sign out from Supabase Cloud? Your local planner data will remain completely safe and accessible on this device."
+        confirmLabel="Sign Out"
+        isDestructive={false}
+        onConfirm={handleSignOut}
+        onCancel={() => setShowSignOutModal(false)}
+      />
+
       {/* Reset Confirmation Modal */}
       <ConfirmModal
         visible={showResetModal}
@@ -288,6 +383,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.charcoal,
     marginBottom: spacing.xs,
+    marginTop: spacing.sm,
   },
   chipRow: {
     flexDirection: 'row',
@@ -322,5 +418,52 @@ const styles = StyleSheet.create({
     color: colors.success,
     marginBottom: spacing.sm,
     fontWeight: '600',
+  },
+  authConnectedContainer: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.paleSage,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    marginBottom: spacing.xs,
+  },
+  badgeText: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: colors.forest,
+  },
+  authEmail: {
+    ...typography.h3,
+    fontSize: 15,
+    color: colors.charcoal,
+    marginBottom: spacing.xs,
+  },
+  authButtonsRow: {
+    flexDirection: 'row',
+    marginTop: spacing.xs,
+  },
+  authOfflineContainer: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  offlineBadgeRow: {
+    backgroundColor: colors.beige,
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    marginBottom: spacing.xs,
+  },
+  offlineBadgeText: {
+    ...typography.caption,
+    fontWeight: '500',
+    color: colors.charcoal,
   },
 });

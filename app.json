@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "levelupplanner",
+    "scheme": ["levelupplanner", "levelup"],
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#F7F5EF",
     "ios": {
